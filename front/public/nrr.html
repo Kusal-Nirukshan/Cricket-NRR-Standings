@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="nrr.css">
+    <title>Calculate NRR</title>
+</head>
+<body>
+    <h1 class="topic">Net Run Rate (NRR) Calculator in cricket</h1>
+    <div class="container">
+        <p>Net run rate (NRR) is a statistical method used in analysing teamwork and/or performance in cricket. It is the most commonly used method 
+        of ranking teams with equal points in limited overs league competitions. </p>
+        <h2 class="topic">Method of calculation:</h2>
+        <p>The NRR in a single game is the average runs per over that team scores, minus the average runs per over that is scored against them. The NRR in a 
+        tournament is the average runs per over that a team scores across the whole tournament, minus the average runs per over that is scored against 
+        them across the whole tournament.</p>
+    </div>
+
+    <div class="container">
+        <h2 class="topic">NRR Calculator</h2>
+        <form id="tournamentForm">
+            <div class="container-form">
+            <input type="text" name="tournamentName" class="input-class" id="name" placeholder="Enter Tournament Name">
+            <br><br>
+            <input type="number" name="overs" class="input-class" class="input-class" id="overs" placeholder="Enter Number of Overs">
+            <br><br>
+            <input type="number" name="teams" class="input-class" id="teams" placeholder="Enter Number of Teams">
+            <div id="errorMessage" class="error-message"></div>
+            </div>
+            <button type="submit" class="btn">Proceed</button>
+        </form>
+    </div>
+    <script src="../back/public/nrr.js"></script>
+</body>
+</html>
