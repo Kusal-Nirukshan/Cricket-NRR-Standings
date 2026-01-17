@@ -32,4 +32,15 @@ router.get('/tournament/:id', async (req, res) => {
     `);
 });
 
+router.get('/tournament/:id/data', async (req, res) => {
+    const tournament = await Tournament.findById(req.params.id);
+    if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+
+    res.json({
+        tournamentName: tournament.tournamentName,
+        overs: tournament.overs,
+        teams: tournament.teams
+    });
+});
+
 module.exports = router;

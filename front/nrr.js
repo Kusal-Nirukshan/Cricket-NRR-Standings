@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    console.log("NRR JS LOADED");
     const form = document.getElementById('tournamentForm');
     const errorBox = document.getElementById('errorMessage');
+    const successBox = document.getElementById('successMessage');
 
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -13,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
  
         errorBox.style.display = 'none';
         errorBox.textContent = '';
+        successBox.style.display = 'none';
+        successBox.textContent = '';
 
         if (!name || !overs || !teams) {
             errorBox.textContent = "⚠ Please fill in all fields before proceeding.";
@@ -27,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const res = await fetch('/create-tournament', {
+            const res = await fetch('http://localhost:3000/create-tournament', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -35,7 +39,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await res.json();
             if (result.success) {
-                window.location.href = `/tournament/${encodeURIComponent(result.id)}`;
+                successBox.textContent = "✅ Tournament created successfully!";
+                successBox.style.color = "lightgreen";
+                successBox.style.display = "block";
+
+                // ⏳ wait 1.5 seconds before redirect
+                setTimeout(() => {
+                     window.location.href = `http://localhost:3000/tournament/${encodeURIComponent(result.id)}`;
+                }, 3000);
+
             } else {
                 errorBox.textContent = "❌ " + (result.error || "Error saving tournament");
                 errorBox.style.display = "block";

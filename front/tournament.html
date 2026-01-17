@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="tournament.css">
+    <title>Tournament Details</title>
+</head>
+
+<body>
+    <h1 class="topic">Tournament Details</h1>
+    <div class="container">
+        <p class="intro">Welcome to the tournament page. Here you can manage and view details about your cricket tournament.</p>
+    </div>
+
+        <h1 id="tournamentName"></h1>
+        <p id="tournamentDetails"></p>
+
+    <div class="container">
+        <h2 class="sub-topic">Select Tournament Format</h2>
+        <div class="format-options">
+            <label class="radio-card">
+                <input type="radio" name="format" value="roundrobin" required>
+                <div class="card-content">
+                    <h3>Round Robin</h3>
+                    <p>Every team plays against each other</p>
+                </div>
+            </label>
+
+            <label class="radio-card">
+                <input type="radio" name="format" value="groups">
+                <div class="card-content">
+                    <h3>Group Stage</h3>
+                    <p>Teams are divided into groups</p>
+                </div>
+            </label>
+        </div>
+
+        <div id="tablesContainer"></div>
+    </div>
+
+    <div id="teamInputsContainer"></div>

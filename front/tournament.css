@@ -1,0 +1,91 @@
+.intro {
+    justify-content: center;
+}
+
+.container {
+    background-color: rgba(14, 128, 14, 0.4);
+    justify-content: center;
+    align-items: center;
+    height: fit-content;
+    padding:20px;
+    margin:10px 10vw;
+    border-radius: 15px;
+}
+
+#teamInputsContainer input {
+    margin: 5px 0;
+    padding: 5px;
+    width: 200px;
+}
+table {
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+table, th, td {
+    border: 1px solid #333;
+    padding: 5px 10px;
+}
+
+.sub-topic {
+    background:linear-gradient(90deg, #00ff00, #007700);
+    font-size: 28px;
+    font-weight: bold;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    margin: 15px 0;
+}
+
+
+.radio-card {
+    margin: 10px 0;
+    color:#a5f4a5;
+    position: relative;
+    cursor: pointer;
+}
+
+.radio-card input {
+    display:none;
+}
+
+.format-options {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.card-content {
+    width: 220px;
+    padding: 20px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0b3d0b, #1f8f1f);
+    color: #fff;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
+
+.radio-card:hover .card-content {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.35);
+}
+
+/* Selected state */
+.radio-card input:checked + .card-content {
+    border-color: #00ff88;
+    background: linear-gradient(135deg, #0f5c2a, #00aa55);
+}
+
+.card-content h3 {
+    margin-bottom: 8px;
+    font-size: 1.3rem;
+}
+
+.card-content p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    text-align: center;
+}
