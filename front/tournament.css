@@ -10,6 +10,8 @@
     padding:20px;
     margin:10px 10vw;
     border-radius: 15px;
+    z-index: 2;
+    position: relative;
 }
 
 #teamInputsContainer input {
@@ -17,10 +19,12 @@
     padding: 5px;
     width: 200px;
 }
+
 table {
     border-collapse: collapse;
     margin: 10px 0;
 }
+
 table, th, td {
     border: 1px solid #333;
     padding: 5px 10px;
@@ -88,4 +92,204 @@ table, th, td {
     font-size: 0.9rem;
     opacity: 0.9;
     text-align: center;
+}
+
+.format-wrapper {
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+}
+
+
+/* Hidden container */
+.group-options {
+    background: #05421a;
+    padding: 20px;
+    border-radius: 12px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.5s ease;
+    margin:10px 10vw;
+}
+
+/* Active state */
+.group-options.show {
+    max-height: 150px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.group-options {
+    transition: max-height 0.4s ease,
+              opacity 0.3s ease 0.1s,
+              transform 0.4s ease;
+}
+
+.group-options {
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+.group-buttons-wrapper {
+  display: flex;
+  justify-content: center; /* center by default */
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.group-buttons {
+  display: flex;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+/* Radio buttons styling */
+.group-radio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.group-radio input {
+  display: none;
+}
+
+.group-radio span {
+  display: inline-block;
+  padding: 16px 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0b3d0b, #1f8f1f);
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.group-radio:hover span {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+/* Selected */
+.group-radio input:checked + span {
+  border: 2px solid #00ff88;
+  background: linear-gradient(135deg, #0f5c2a, #00aa55);
+}
+
+/* Other input box */
+.other-inline {
+  display: none; /* fully hidden at first */
+  margin-left: 12px;
+}
+
+.other-inline.show {
+  display: block;
+}
+
+.other-inline input {
+  width: 120px;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0f5c2a, #007744);
+  color: #fff;
+  border: 2px solid #00ff88;
+  outline: none;
+  font-weight: bold;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.other-inline ::view-transition {
+  transition: transform 0.4s ease;
+}
+
+h4 {
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 20px;
+    color:#00ff88
+}
+
+#teamInputsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 3fr));
+  gap: 12px;
+  margin: 20px auto;
+  max-width: 900px;
+}
+
+#teamInputsContainer > div {
+    width: 100%;
+}
+
+.team-input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 2px solid #00ff88;
+  background: #0f5c2a;
+  color: white;
+  font-size: 1rem;
+}
+.team-input::placeholder {
+  color: #a5f4a5;
+}
+
+.team-input:focus {
+  border-color: #00ffcc;
+  box-shadow: 0 0 8px #00ffcc;
+  outline: none;
+}
+
+.proceed-button {
+    background: #00aa55;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+}
+
+.proceed-button:hover {
+    background: #00ff88;
+}
+
+.proceed-button:disabled {
+    background: #51a34fc4;
+    cursor: not-allowed;
+}
+
+.proceed-wrapper {
+    display:flex;
+    justify-content: center;
+}
+
+.error-message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-align: center;
+    background-color: #ffdddd;
+    color: #a50000;
+    border: 1px solid #ff0000;
+    transition: all 0.3s ease;
+}
+
+.success-message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-align: center;
+    background-color: #ddffdd;
+    color: #006600;
+    border: 1px solid #00aa00;
+    transition: all 0.3s ease;
 }

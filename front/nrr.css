@@ -33,20 +33,25 @@
     box-shadow: 0 0 5px #00ff00;
 }
 
-.btn {
-    background-color: #00ff00;
-    color: #0f750f;
-    font-size:1rem;
-    padding: 10px 20px;
+.proceed-button {
+    background: #00aa55;
+    color: white;
+    padding: 12px 24px;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
+    font-size: 1.2rem;
     cursor: pointer;
-    font-weight: bold;
+    transition: all 0.3s ease;
+    margin-top: 20px;
 }
 
-.btn:hover {
-    background-color: #005a00;
-    color: #54f954;
+.proceed-button:hover {
+    background: #00ff88;
+}
+
+.proceed-wrapper {
+    display:flex;
+    justify-content: center;
 }
 
 .error-message {
@@ -63,6 +68,7 @@
   margin-top: 10px;
   display: none;
 }
+
 
 @media (max-width: 1200px) {
     .container {

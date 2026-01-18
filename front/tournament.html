@@ -16,28 +16,135 @@
 
         <h1 id="tournamentName"></h1>
         <p id="tournamentDetails"></p>
+    <div class="format-wrapper">
+        <div class="container">
+            <h2 class="sub-topic">Select Tournament Format</h2>
+            <div class="format-options">
+                <label class="radio-card">
+                    <input type="radio" name="format" value="roundrobin" required>
+                    <div class="card-content">
+                        <h3>Round Robin</h3>
+                        <p>Every team plays against each other</p>
+                    </div>
+                </label>
 
-    <div class="container">
-        <h2 class="sub-topic">Select Tournament Format</h2>
-        <div class="format-options">
-            <label class="radio-card">
-                <input type="radio" name="format" value="roundrobin" required>
-                <div class="card-content">
-                    <h3>Round Robin</h3>
-                    <p>Every team plays against each other</p>
-                </div>
-            </label>
-
-            <label class="radio-card">
-                <input type="radio" name="format" value="groups">
-                <div class="card-content">
-                    <h3>Group Stage</h3>
-                    <p>Teams are divided into groups</p>
-                </div>
-            </label>
+                <label class="radio-card">
+                    <input type="radio" name="format" value="groups">
+                    <div class="card-content">
+                        <h3>Group Stage</h3>
+                        <p>Teams are divided into groups</p>
+                    </div>
+                </label>
+            </div>
         </div>
 
-        <div id="tablesContainer"></div>
+        <div class="group-options" id="groupOptions">
+        <h4>Number of Groups</h4>
+
+        <div class="group-buttons-wrapper">
+            <div class="group-buttons" id="groupButtons">
+            <label class="group-radio">
+                <input type="radio" name="groupCount" value="2">
+                <span>2</span>
+            </label>
+
+            <label class="group-radio">
+                <input type="radio" name="groupCount" value="4">
+                <span>4</span>
+            </label>
+
+            <label class="group-radio">
+                <input type="radio" name="groupCount" value="8">
+                <span>8</span>
+            </label>
+
+            <label class="group-radio">
+                <input type="radio" name="groupCount" value="other">
+                <span>Other</span>
+            </label>
+            </div>
+
+            <!-- Hidden until needed -->
+            <div class="other-inline" id="otherInput">
+            <input type="number" min="2" placeholder="Groups" id="customGroupCount">
+            </div>
+        </div>
+    </div>
     </div>
 
+    <script>
+        const radios = document.querySelectorAll('input[name="format"]');
+        const groupOptions = document.getElementById('groupOptions');
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'groups') {
+                groupOptions.classList.add('show');
+                } else {
+                groupOptions.classList.remove('show');
+                }
+            });
+        });
+    </script>
+
+    <script>
+    const radioval = document.querySelectorAll('input[name="groupCount"]');
+    const otherInput = document.getElementById('otherInput');
+    const customGroupCount = document.getElementById('customGroupCount');
+
+    let selectedGroups = null;
+
+    radioval.forEach(radio => {
+        radio.addEventListener('change', () => {
+        if (radio.value === 'other') {
+            otherInput.classList.add('show');
+            selectedGroups = null;
+        } else {
+            otherInput.classList.remove('show');
+            selectedGroups = Number(radio.value);
+        }
+        });
+    });
+
+    customGroupCount.addEventListener('input', () => {
+        const val = Number(customGroupCount.value);
+        selectedGroups = val > 1 ? val : null;
+    });
+
+    // Call this before proceeding
+    function isGroupSelectionValid() {
+        return selectedGroups !== null;
+    }
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        const teamCount = parseInt(params.get('teams'), 10);
+
+        if (!teamCount || teamCount < 2) return;
+
+        const container = document.getElementById('teamInputsContainer');
+
+        for (let i = 1; i <= teamCount; i++) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = `Team ${i} name`;
+            input.className = 'team-input';
+            input.required = true;
+
+            container.appendChild(input);
+        }
+    });
+    </script>
+
+
     <div id="teamInputsContainer"></div>
+    <div id="errorMessage" class="error-message"></div>
+    <div class="proceed-wrapper">
+        <input type="button" value="Proceed" class="proceed-button" id="proceedButton" disabled>
+    </div>
+    <script src="formvalidation.js" defer></script>
+    <script src="groupvalidation.js" defer></script>
+</body>
+</html>
