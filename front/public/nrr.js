@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    console.log("NRR JS LOADED");
     const form = document.getElementById('tournamentForm');
     const errorBox = document.getElementById('errorMessage');
     const successBox = document.getElementById('successMessage');
@@ -9,8 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
 
         const name = document.getElementById('name').value.trim();
-        const overs = document.getElementById('overs').value.trim();
-        const teams = document.getElementById('teams').value.trim();
+        const overs = Number(document.getElementById('overs').value);
+        const teams = Number(document.getElementById('teams').value);
 
  
         errorBox.style.display = 'none';
@@ -44,8 +43,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 successBox.style.display = "block";
 
                 // ⏳ wait 1.5 seconds before redirect
+                const query = new URLSearchParams({
+                    id: result.id,
+                    tournament: name,
+                    teams: teams,
+                    overs: overs
+                });
+
                 setTimeout(() => {
-                     window.location.href = `http://localhost:3000/tournament/${encodeURIComponent(result.id)}`;
+                    window.location.href = `/tournament.html?${query.toString()}`;
                 }, 3000);
 
             } else {

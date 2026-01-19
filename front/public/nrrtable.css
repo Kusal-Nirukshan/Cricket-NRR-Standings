@@ -1,0 +1,39 @@
+.table-container {
+    margin: 2rem auto;
+    max-width: 95%;
+    overflow-x: auto;
+}
+
+.container {
+    background-color: rgba(14, 128, 14, 0.4);
+    justify-content: center;
+    align-items: center;
+    height: fit-content;
+    padding:20px;
+    margin:10px 10vw;
+    border-radius: 15px;
+    z-index: 2;
+    position: relative;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #26702c;
+    color: #eee;
+}
+
+th, td {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #31cb55;
+}
+
+th {
+    background: #143e13;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background: #1bba60;
+}
