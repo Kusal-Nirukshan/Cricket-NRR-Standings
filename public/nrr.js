@@ -51,8 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 setTimeout(() => {
-                    window.location.href = `/tournament.html?${query.toString()}`;
-                }, 3000);
+                    window.location.href = `/tournament.html?id=${result.id}&tournament=${name}&teams=${teams}&overs=${overs}`;
+                }, 1500);
 
             } else {
                 errorBox.textContent = "❌ " + (result.error || "Error saving tournament");

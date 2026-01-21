@@ -146,5 +146,59 @@
     </div>
     <script src="formvalidation.js" defer></script>
     <script src="groupvalidation.js" defer></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const proceedBtn = document.getElementById('proceedButton');
+        const teamInputsContainer = document.getElementById('teamInputsContainer');
+
+        proceedBtn.addEventListener('click', () => {
+            // 1️⃣ Collect all team names
+            const teamInputs = teamInputsContainer.querySelectorAll('input.team-input');
+            const teams = [...teamInputs].map(input => input.value.trim());
+
+            if (teams.some(name => name === '')) {
+                alert('⚠ Please fill in all team names');
+                return;
+            }
+
+            // 2️⃣ Get format
+            const formatRadio = document.querySelector('input[name="format"]:checked');
+            if (!formatRadio) {
+                alert('⚠ Please select a tournament format');
+                return;
+            }
+            const format = formatRadio.value;
+
+            // 3️⃣ Get group count if needed
+            let groups = '';
+            if (format === 'groups') {
+                const groupRadio = document.querySelector('input[name="groupCount"]:checked');
+                if (!groupRadio) {
+                    alert('⚠ Please select number of groups');
+                    return;
+                }
+                if (groupRadio.value === 'other') {
+                    const custom = document.getElementById('customGroupCount').value;
+                    if (!custom || Number(custom) < 2) {
+                        alert('⚠ Enter valid number of groups');
+                        return;
+                    }
+                    groups = Number(custom);
+                } else {
+                    groups = Number(groupRadio.value);
+                }
+            }
+
+            // 4️⃣ Redirect to nrrtable.html
+            const params = new URLSearchParams();
+            params.set('format', format);
+            params.set('teams', teams.join(',')); // send as comma-separated
+            if (format === 'groups') params.set('groups', groups);
+
+            window.location.href = `/nrrtable.html?${params.toString()}`;
+        });
+    });
+    </script>
+
 </body>
 </html>

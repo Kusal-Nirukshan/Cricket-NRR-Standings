@@ -85,10 +85,4 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedGroups = Number(customGroupInput.value);
         validateGroups();
     });
-
-    // --- Proceed Button ---
-    proceedButton.addEventListener('click', () => {
-        alert('Proceeding with valid teams and groups!');
-        // redirect or next step here
-    });
 });

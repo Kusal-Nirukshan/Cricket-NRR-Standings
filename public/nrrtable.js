@@ -1,27 +1,38 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
 
+    const tournamentId = params.get('id');
     const tournamentName = params.get('tournament');
-    const teamCount = parseInt(params.get('teams'), 10);
-    const format = params.get('format');
-    const groupCount = parseInt(params.get('groups'), 10);
+    const format = params.get('format'); // "roundrobin" or "groups"
+    const groupCount = parseInt(params.get('groups'), 10) || null;
+    const teams = params.get('teams').split(','); // team names array
 
-    const tournamentId = window.location.pathname.split('/').slice(-2)[0];
+    // UI
     const container = document.getElementById('tablesContainer');
     const title = document.getElementById('tournamentName');
-
-    const res = await fetch(`http://localhost:3000/tournament/${tournamentId}/nrr-data`);
-    const data = await res.json();
-
-    title.textContent = data.tournamentName;
+    title.textContent = tournamentName;
     document.getElementById('tournamentTitle').textContent = `NRR Table of ${tournamentName}`;
 
-    if (data.format === 'roundrobin') {
-        renderGroup(container, 'League Table', data.teams);
+    // Optional: fetch tournament metadata from backend
+    try {
+        const res = await fetch(`http://localhost:3000/tournament/${tournamentId}/data`);
+        const data = await res.json();
+        console.log("Tournament data from backend:", data);
+    } catch (err) {
+        console.warn("Failed to fetch backend data:", err);
+    }
+
+    // Render tables
+    if (format === 'roundrobin') {
+        renderGroup(container, 'League Table', teams);
+    } else if (format === 'groups' && groupCount) {
+        const teamsPerGroup = teams.length / groupCount;
+        for (let i = 0; i < groupCount; i++) {
+            const groupTeams = teams.slice(i * teamsPerGroup, (i + 1) * teamsPerGroup);
+            renderGroup(container, `Group ${i + 1}`, groupTeams);
+        }
     } else {
-        data.groups.forEach(group => {
-            renderGroup(container, `Group ${group.name}`, group.teams);
-        });
+        console.error("Invalid format or group count");
     }
 });
 
@@ -53,6 +64,5 @@ function renderGroup(container, title, teams) {
             `).join('')}
         </tbody>
     `;
-
     container.appendChild(table);
 }
