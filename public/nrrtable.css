@@ -21,6 +21,7 @@ table {
     border-collapse: collapse;
     background: #26702c;
     color: #eee;
+    margin: 10px 0 50px 0;
 }
 
 th, td {
@@ -35,5 +36,51 @@ th {
 }
 
 tr:nth-child(even) {
-    background: #1bba60;
+    background: #30aa65;
+}
+
+.matches-container {
+    margin: 10px 0;
+    color:#a5f4a5;
+    position: relative;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+}
+
+.match-btn input {
+    display:none;
+}
+
+.match-btn {
+    display: inline-block;
+    padding: 15px 20px;
+    margin: 10px;
+    border-radius: 8px;
+    background-color: #b4ffb4;
+    color: #144a0f;
+    border: 1px solid #40c85e;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.match-btn:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.08); 
+}
+
+.matches-list { 
+    display:inline-block; 
+    flex-wrap:wrap; 
+    gap:8px; 
+    margin-top:8px; 
+}
+
+.matches-group h3 { 
+    margin: 8px 0; 
+    color: #dfffe0; 
+}
+
+.match-btn:active { 
+    transform: translateY(0); 
 }

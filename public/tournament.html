@@ -152,7 +152,6 @@
         const teamInputsContainer = document.getElementById('teamInputsContainer');
 
         proceedBtn.addEventListener('click', () => {
-            // 1️⃣ Collect all team names
             const teamInputs = teamInputsContainer.querySelectorAll('input.team-input');
             const teams = [...teamInputs].map(input => input.value.trim());
 
@@ -161,7 +160,6 @@
                 return;
             }
 
-            // 2️⃣ Get format
             const formatRadio = document.querySelector('input[name="format"]:checked');
             if (!formatRadio) {
                 alert('⚠ Please select a tournament format');
@@ -169,7 +167,6 @@
             }
             const format = formatRadio.value;
 
-            // 3️⃣ Get group count if needed
             let groups = '';
             if (format === 'groups') {
                 const groupRadio = document.querySelector('input[name="groupCount"]:checked');
@@ -189,16 +186,46 @@
                 }
             }
 
-            // 4️⃣ Redirect to nrrtable.html
-            const params = new URLSearchParams();
-            params.set('format', format);
-            params.set('teams', teams.join(',')); // send as comma-separated
-            if (format === 'groups') params.set('groups', groups);
+            if (format === 'groups') {
+                if (!Number.isFinite(groups) || teams.length % groups !== 0) {
+                    alert('⚠ Number of teams must be evenly divisible by number of groups');
+                    return;
+                }
+            }
 
-            window.location.href = `/nrrtable.html?${params.toString()}`;
+            const urlParams = new URLSearchParams(window.location.search);
+            const tournamentId = urlParams.get('id');
+
+            if (!tournamentId) {
+                alert('Tournament ID missing');
+                return;
+            }
+
+            fetch(`http://localhost:3000/tournament/${tournamentId}/setup`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    format,
+                    teamNames: teams,
+                    groups: format === 'groups' ? groups : null
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('Failed to save tournament setup');
+                    return;
+                }
+
+                
+                window.location.href = `/nrrtable.html?id=${tournamentId}`;
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Server error while saving tournament');
+            });
         });
     });
     </script>
-
 </body>
 </html>

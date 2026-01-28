@@ -1,68 +1,75 @@
-document.addEventListener('DOMContentLoaded', async () => {
-
-    const params = new URLSearchParams(window.location.search);
-    const tournamentId = params.get('id');
-
-    if (!tournamentId) {
-        alert('Tournament ID missing');
-        return;
-    }
-
-    // UI elements
-    const nameEl = document.getElementById('tournamentName');
-    const detailsEl = document.getElementById('tournamentDetails');
+document.addEventListener('DOMContentLoaded', () => {
+    const nameInput = document.getElementById('tournamentNameInput');
+    const oversInput = document.getElementById('oversInput');
+    const teamInputsContainer = document.getElementById('teamInputsContainer');
     const formatForm = document.getElementById('formatForm');
     const groupInput = document.getElementById('groupInput');
     const numGroupsInput = document.getElementById('numGroups');
 
-    let teamCount = 0;
-
-    // 🔹 Fetch tournament data from backend
-    try {
-        const res = await fetch(`/tournament/${tournamentId}/data`);
-        const data = await res.json();
-
-        nameEl.textContent = data.tournamentName;
-        detailsEl.textContent = `Overs: ${data.overs} | Teams: ${data.teams}`;
-        teamCount = data.teams;
-
-        numGroupsInput.max = teamCount;
-
-    } catch (err) {
-        console.error(err);
-        alert('Failed to load tournament data');
-        return;
-    }
-
     // Show / hide group input
     document.querySelectorAll('input[name="format"]').forEach(radio => {
         radio.addEventListener('change', () => {
-            const selected = document.querySelector('input[name="format"]:checked').value;
-            groupInput.style.display = selected === 'groups' ? 'block' : 'none';
+            groupInput.style.display = radio.value === 'groups' ? 'block' : 'none';
         });
     });
 
-    // Handle submit → go to NRR table
-    formatForm.addEventListener('submit', (e) => {
+    function getTeamNames() {
+        const inputs = teamInputsContainer.querySelectorAll('input');
+        return [...inputs].map(i => i.value.trim()).filter(n => n);
+    }
+
+    formatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        const tournamentName = nameInput.value.trim();
+        const overs = parseInt(oversInput.value, 10);
+        const teamsArray = getTeamNames();
+
+        if (!tournamentName || !overs || teamsArray.length < 2) {
+            alert('Fill name, overs, and at least 2 teams.');
+            return;
+        }
+
         const format = document.querySelector('input[name="format"]:checked').value;
-        let groups = '';
+        let groupCount = null;
 
         if (format === 'groups') {
-            groups = parseInt(numGroupsInput.value, 10);
-
-            if (!groups || groups < 2 || teamCount % groups !== 0) {
-                alert('Invalid number of groups');
+            groupCount = parseInt(numGroupsInput.value, 10);
+            if (!groupCount || groupCount < 2 || teamsArray.length % groupCount !== 0) {
+                alert('Invalid number of groups.');
                 return;
             }
         }
 
-        let url = `/nrrtable.html?id=${tournamentId}&format=${format}`;
-        if (format === 'groups') {
-            url += `&groups=${groups}`;
-        }
+        try {
+            // 1️⃣ Create tournament
+            const resCreate = await fetch('/tournament', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: tournamentName,
+                    overs,
+                    teams: teamsArray.length,
+                    teamNames: teamsArray
+                })
+            });
 
-        window.location.href = url;
+            const savedTournament = await resCreate.json();
+            const tournamentId = savedTournament._id;
+
+            // 2️⃣ Save format/groups
+            await fetch(`/tournament/${tournamentId}/format`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ format, groupCount })
+            });
+
+            // 3️⃣ Redirect to NRR page
+            window.location.href = `/nrrtable.html?id=${tournamentId}`;
+
+        } catch (err) {
+            console.error(err);
+            alert('Failed to create tournament. See console.');
+        }
     });
 });
