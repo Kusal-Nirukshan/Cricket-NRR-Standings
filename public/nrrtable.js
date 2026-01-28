@@ -22,14 +22,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // determine tournament overs (fallbacks)
         const overs = data.overs || data.maxOvers || data.oversPerSide || 50;
 
-        if (data.groups && typeof data.groups === 'object') {
+        const standingsList = Array.isArray(data.standings) ? data.standings : null;
+        // groups is an object map (Group name => [teams])
+        if (data.groups && !Array.isArray(data.groups) && typeof data.groups === 'object') {
             Object.entries(data.groups).forEach(([groupName, teams]) => {
-                renderGroup(container, groupName, teams);
-                const matches = generatePairs(teams);
+                renderGroup(container, groupName, teams, standingsList);
+                const matches = (data.matches && data.matches[groupName]) ? data.matches[groupName] : generatePairs(teams);
                 renderMatches(matchesContainer, tournamentId, groupName, matches, overs);
             });
 
-            
+        // legacy: groups is a numeric count and teamNames provided
         } else if (data.groups && Number.isFinite(Number(data.groups)) && Array.isArray(data.teamNames)) {
             const groupCount = Number(data.groups);
             const groupsMap = {};
@@ -39,15 +41,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 groupsMap[`Group ${grpIndex + 1}`].push(data.teamNames[i]);
             }
             Object.entries(groupsMap).forEach(([groupName, teams]) => {
-                renderGroup(container, groupName, teams);
-                const matches = generatePairs(teams);
+                renderGroup(container, groupName, teams, standingsList);
+                const matches = (data.matches && data.matches[groupName]) ? data.matches[groupName] : generatePairs(teams);
                 renderMatches(matchesContainer, tournamentId, groupName, matches, overs);
             });
 
+        // groups explicitly provided as an array of team names (single group)
+        } else if (Array.isArray(data.groups) && data.groups.length) {
+            renderGroup(container, 'All Teams', data.groups, standingsList);
+            const matches = (data.matches && data.matches['All Teams']) ? data.matches['All Teams'] : generatePairs(data.groups);
+            renderMatches(matchesContainer, tournamentId, 'All Teams', matches, overs);
+
         } else if (Array.isArray(data.teamNames) && data.teamNames.length) {
             // no groups provided; render single table for all teams
-            renderGroup(container, 'All Teams', data.teamNames);
-            const matches = generatePairs(data.teamNames);
+            renderGroup(container, 'All Teams', data.teamNames, standingsList);
+            const matches = (data.matches && data.matches['All Teams']) ? data.matches['All Teams'] : generatePairs(data.teamNames);
             renderMatches(matchesContainer, tournamentId, 'All Teams', matches, overs);
         } else {
             // no team data available
@@ -63,8 +71,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Render single group table
-function renderGroup(container, title, teams) {
+function renderGroup(container, title, teams, standingsList) {
     const table = document.createElement('table');
+    // build tbody rows: prefer standingsList filtered to this group's teams if available
+    let rowsHtml = '';
+    if (Array.isArray(standingsList)) {
+        const groupStandings = standingsList.filter(s => teams.includes(s.team));
+        if (groupStandings.length) {
+            rowsHtml = groupStandings.map(s => `
+                <tr>
+                    <td>${s.team}</td>
+                    <td>${s.played}</td>
+                    <td>${s.wins}</td>
+                    <td>${s.losses}</td>
+                    <td>${s.points}</td>
+                    <td>${s.nrr.toFixed ? s.nrr.toFixed(3) : Number(s.nrr).toFixed(3)}</td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    // fallback to simple team list if no standings available for these teams
+    if (!rowsHtml) {
+        rowsHtml = teams.map(t => `
+            <tr>
+                <td>${t}</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0.000</td>
+            </tr>
+        `).join('');
+    }
+
     table.innerHTML = `
         <caption>${title}</caption>
         <thead>
@@ -78,16 +118,7 @@ function renderGroup(container, title, teams) {
             </tr>
         </thead>
         <tbody>
-            ${teams.map(t => `
-                <tr>
-                    <td>${t}</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0.000</td>
-                </tr>
-            `).join('')}
+            ${rowsHtml}
         </tbody>
     `;
     container.appendChild(table);
@@ -101,6 +132,7 @@ function generatePairs(teams) {
             pairs.push([teams[i], teams[j]]);
         }
     }
+    
     return pairs;
 }
 

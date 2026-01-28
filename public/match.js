@@ -160,6 +160,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   attachNumericClamp('#teamAWickets, #teamBWickets', 0, 10);
 
+  function pointsdistributionExample() {
+      return 'e.g., Win: 2 pts, Tie/No Result: 1 pt, Loss: 0 pts';
+  };
+
   // Save button handler — collect fields and result type
   document.getElementById('saveResultBtn').addEventListener('click', () => {
     const resultType = card.querySelector('input[name="resultType"]:checked')?.value || 'A';
@@ -176,7 +180,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const payload = { tournamentId, group, a, b, m, resultType, teamAScore, teamBScore, teamAOvers, teamBOvers, teamAWickets, teamBWickets };
     console.log('Saving match result', payload);
-    alert('Result prepared — check console. Implement server submit next.');
+    (async () => {
+      try {
+        const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/match-result`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.status === 409) {
+          alert('This match result has already been recorded.');
+          return;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        alert('Result saved. Returning to matches.');
+        // navigate back to matches page
+        window.location.href = `/nrrtable.html?id=${encodeURIComponent(tournamentId)}`;
+      } catch (err) {
+        console.error(err);
+        alert('Failed to save result. See console.');
+      }
+    })();
   });
 
   document.getElementById('backBtn').addEventListener('click', () => {

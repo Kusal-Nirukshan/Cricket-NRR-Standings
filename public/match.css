@@ -65,6 +65,11 @@ input[type=number]::-webkit-inner-spin-button {
   margin: 0;
 }
 input[type=number] {
+/*
+Suggestion:
+- The rule uses a Firefox-specific vendor-prefixed appearance. Prefer the standardized "appearance" property and include vendor fallbacks for broader browser support (or use the "none" value if the goal is to remove native styling).
+- Add and test appropriate fallbacks for WebKit and modern browsers, and verify visual behavior across browsers.
+*/
   -moz-appearance: textfield;
 }
 

@@ -11,6 +11,9 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
+// Mount tournament routes (contains format and match-result endpoints)
+app.use('/', require('./routes/tournament'));
+
 /* ---------- MongoDB ---------- */
 mongoose.connect('mongodb://127.0.0.1:27017/dls_nrr', {
 })
@@ -98,7 +101,56 @@ app.get('/tournament/:id/data', async (req, res) => {
         if (!tournament) {
             return res.status(404).json({ error: 'Tournament not found' });
         }
-        res.json(tournament);
+        // compute standings (points + NRR) from persisted teamStats
+        const teamStats = (tournament.teamStats && typeof tournament.teamStats === 'object') ? tournament.teamStats : {};
+        const standings = Object.keys(teamStats).map(teamName => {
+            const s = teamStats[teamName] || {};
+            const ballsFaced = Number(s.ballsFaced) || 0;
+            const ballsBowled = Number(s.ballsBowled) || 0;
+            const runsFor = Number(s.runsFor) || 0;
+            const runsAgainst = Number(s.runsAgainst) || 0;
+
+            const oversFaced = ballsFaced / 6;
+            const oversBowled = ballsBowled / 6;
+            const rpoFor = oversFaced > 0 ? runsFor / oversFaced : 0;
+            const rpoAgainst = oversBowled > 0 ? runsAgainst / oversBowled : 0;
+            const nrr = rpoFor - rpoAgainst;
+
+            return {
+                team: teamName,
+                played: s.played || 0,
+                wins: s.wins || 0,
+                losses: s.losses || 0,
+                ties: s.ties || 0,
+                points: s.points || 0,
+                runsFor,
+                runsAgainst,
+                ballsFaced,
+                ballsBowled,
+                nrr: Number(nrr.toFixed(3))
+            };
+        });
+
+        // sort: points desc, then nrr desc, then wins desc, then runsFor desc
+        standings.sort((A, B) => {
+            if (B.points !== A.points) return B.points - A.points;
+            if (B.nrr !== A.nrr) return B.nrr - A.nrr;
+            if (B.wins !== A.wins) return B.wins - A.wins;
+            return B.runsFor - A.runsFor;
+        });
+
+        res.json({
+            tournamentName: tournament.tournamentName,
+            overs: tournament.overs,
+            teams: tournament.teams,
+            teamNames: tournament.teamNames,
+            format: tournament.format,
+            groups: tournament.groups,
+            matches: tournament.matches,
+            matchResults: tournament.matchResults,
+            teamStats: tournament.teamStats,
+            standings
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch tournament' });
