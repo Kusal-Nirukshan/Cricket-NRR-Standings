@@ -7,6 +7,41 @@ const Tournament = require('./models/tournament');
 const app = express();
 const PORT = 3000;
 
+function createEmptyTeamStats() {
+    return {
+        played: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        points: 0,
+        runsFor: 0,
+        runsAgainst: 0,
+        ballsFaced: 0,
+        ballsBowled: 0,
+        wicketsLost: 0,
+        wicketsTaken: 0
+    };
+}
+
+function generatePairs(teams) {
+    const pairs = [];
+    for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) {
+            pairs.push([teams[i], teams[j]]);
+        }
+    }
+    return pairs;
+}
+
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+    }
+}
+
 /* ---------- Middleware ---------- */
 app.use(express.json());
 app.use(express.static('public'));
@@ -59,10 +94,11 @@ app.put('/tournament/:id/setup', async (req, res) => {
         tournament.format = format;
         tournament.teamNames = teamNames;
 
+        const groupsMap = {};
+
         // If client passed a numeric group count, split teamNames into groups object
         if (format === 'groups' && groups && Number.isFinite(Number(groups))) {
             const groupCount = Number(groups);
-            const groupsMap = {};
 
             // create empty arrays
             for (let i = 0; i < groupCount; i++) {
@@ -79,9 +115,33 @@ app.put('/tournament/:id/setup', async (req, res) => {
 
             tournament.groups = groupsMap;
         } else {
-            // store whatever was provided (could be null or an existing object)
-            tournament.groups = groups;
+            groupsMap['All Teams'] = Array.isArray(teamNames) ? teamNames.slice() : [];
+            tournament.groups = null;
         }
+
+        // Persist a stable schedule once during setup.
+        const matchesObj = {};
+        Object.entries(groupsMap).forEach(([groupName, teams]) => {
+            const pairs = generatePairs(Array.isArray(teams) ? teams : []);
+            shuffleArray(pairs);
+            matchesObj[groupName] = pairs;
+        });
+        tournament.matches = matchesObj;
+
+        // Initialize stats for all teams so unplayed teams appear in standings.
+        const statsObj = (tournament.teamStats && typeof tournament.teamStats === 'object') ? tournament.teamStats : {};
+        (Array.isArray(teamNames) ? teamNames : []).forEach((team) => {
+            if (!team) return;
+            if (!statsObj[team]) statsObj[team] = createEmptyTeamStats();
+        });
+        tournament.teamStats = statsObj;
+
+        // Keep result container initialized for each group.
+        const resultObj = (tournament.matchResults && typeof tournament.matchResults === 'object') ? tournament.matchResults : {};
+        Object.keys(groupsMap).forEach((groupName) => {
+            if (!Array.isArray(resultObj[groupName])) resultObj[groupName] = [];
+        });
+        tournament.matchResults = resultObj;
 
         await tournament.save();
 

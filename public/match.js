@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+
   const params = new URLSearchParams(window.location.search);
   const tournamentId = params.get('id');
   const group = params.get('group');
@@ -74,6 +75,47 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <button id="saveResultBtn" class="btn">Save Result</button>
   `;
+
+  // Helper to populate fields if match data exists
+  function populateFields(matchData) {
+    if (!matchData) return;
+    card.querySelector('#teamAScore').value = matchData.teamAScore ?? '';
+    card.querySelector('#teamAOvers').value = matchData.teamAOvers ?? '';
+    card.querySelector('#teamAWickets').value = matchData.teamAWickets ?? '';
+    card.querySelector('#teamBScore').value = matchData.teamBScore ?? '';
+    card.querySelector('#teamBOvers').value = matchData.teamBOvers ?? '';
+    card.querySelector('#teamBWickets').value = matchData.teamBWickets ?? '';
+    if (matchData.resultType) {
+      const radio = card.querySelector(`input[name="resultType"][value="${matchData.resultType}"]`);
+      if (radio) radio.checked = true;
+    }
+  }
+
+  // Try to load saved match data from server (persistent) or localStorage (fallback)
+  (async () => {
+    let matchData = null;
+    try {
+      if (tournamentId && group && m) {
+        const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/data`);
+        if (res.ok) {
+          const data = await res.json();
+          // Find match result for this group and match number (order-insensitive)
+          if (data.matchResults && data.matchResults[group]) {
+            matchData = data.matchResults[group].find(r => String(r.m) === String(m) && ((r.a === a && r.b === b) || (r.a === b && r.b === a)));
+          }
+        }
+      }
+    } catch (e) { /* ignore */ }
+    // Fallback: try localStorage (if used previously)
+    if (!matchData) {
+      const matchKey = `matchdata_${tournamentId}_${group}_${m}`;
+      const local = localStorage.getItem(matchKey);
+      if (local) {
+        try { matchData = JSON.parse(local); } catch {}
+      }
+    }
+    if (matchData) populateFields(matchData);
+  })();
 
   // validation helpers for overs inputs
   function sanitizeOversInput(value) {
@@ -193,8 +235,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        alert('Result saved. Returning to matches.');
-        // navigate back to matches page
+        // Save match data to localStorage for quick reload
+        const matchKey = `matchdata_${tournamentId}_${group}_${m}`;
+        localStorage.setItem(matchKey, JSON.stringify(payload));
+        alert('Result saved. The NRR table will now update.');
+        // If the NRR table is open in another tab, reload it
+        if (window.opener && !window.opener.closed) {
+          window.opener.location.reload();
+        }
+        // Optionally, open or focus the NRR table in this tab
         window.location.href = `/nrrtable.html?id=${encodeURIComponent(tournamentId)}`;
       } catch (err) {
         console.error(err);

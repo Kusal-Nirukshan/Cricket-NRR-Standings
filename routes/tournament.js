@@ -2,6 +2,128 @@ const express = require('express');
 const router = express.Router();
 const Tournament = require('../models/tournament');
 
+function createEmptyTeamStats() {
+    return {
+        played: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        points: 0,
+        runsFor: 0,
+        runsAgainst: 0,
+        ballsFaced: 0,
+        ballsBowled: 0,
+        wicketsLost: 0,
+        wicketsTaken: 0
+    };
+}
+
+function normalizeGroups(tournament) {
+    if (tournament.groups && !Array.isArray(tournament.groups) && typeof tournament.groups === 'object') {
+        return tournament.groups;
+    }
+
+    if (Array.isArray(tournament.groups) && tournament.groups.length) {
+        return { 'All Teams': tournament.groups };
+    }
+
+    if (Array.isArray(tournament.teamNames) && tournament.teamNames.length) {
+        return { 'All Teams': tournament.teamNames };
+    }
+
+    return {};
+}
+
+// Tournament data endpoint: always return matches object for frontend
+router.get('/tournament/:id/data', async (req, res) => {
+    try {
+        const tournament = await Tournament.findById(req.params.id);
+        if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+
+        const groupsObj = normalizeGroups(tournament);
+
+        // Ensure a stable, persisted schedule for each group.
+        const matchesObj = (tournament.matches && typeof tournament.matches === 'object') ? tournament.matches : {};
+        let changed = false;
+        Object.entries(groupsObj).forEach(([groupName, teams]) => {
+            if (!Array.isArray(matchesObj[groupName]) || matchesObj[groupName].length === 0) {
+                const pairs = generatePairs(Array.isArray(teams) ? teams : []);
+                shuffleArray(pairs);
+                matchesObj[groupName] = pairs;
+                changed = true;
+            }
+        });
+
+        // Ensure teamStats has all teams, including teams that have not played yet.
+        tournament.teamStats = (tournament.teamStats && typeof tournament.teamStats === 'object') ? tournament.teamStats : {};
+        const allTeams = Array.isArray(tournament.teamNames) ? tournament.teamNames : [];
+        allTeams.forEach((team) => {
+            if (!team) return;
+            if (!tournament.teamStats[team]) {
+                tournament.teamStats[team] = createEmptyTeamStats();
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            tournament.groups = groupsObj;
+            tournament.matches = matchesObj;
+            await tournament.save();
+        }
+
+        const teamStats = (tournament.teamStats && typeof tournament.teamStats === 'object') ? tournament.teamStats : {};
+        const standings = Object.keys(teamStats).map((teamName) => {
+            const s = teamStats[teamName] || {};
+            const runsFor = Number(s.runsFor) || 0;
+            const runsAgainst = Number(s.runsAgainst) || 0;
+            const ballsFaced = Number(s.ballsFaced) || 0;
+            const ballsBowled = Number(s.ballsBowled) || 0;
+
+            const oversFaced = ballsFaced / 6;
+            const oversBowled = ballsBowled / 6;
+            const rpoFor = oversFaced > 0 ? runsFor / oversFaced : 0;
+            const rpoAgainst = oversBowled > 0 ? runsAgainst / oversBowled : 0;
+            const nrr = rpoFor - rpoAgainst;
+
+            return {
+                team: teamName,
+                played: Number(s.played) || 0,
+                wins: Number(s.wins) || 0,
+                losses: Number(s.losses) || 0,
+                ties: Number(s.ties) || 0,
+                points: Number(s.points) || 0,
+                runsFor,
+                runsAgainst,
+                ballsFaced,
+                ballsBowled,
+                nrr: Number(nrr.toFixed(3))
+            };
+        });
+
+        standings.sort((A, B) => {
+            if (B.points !== A.points) return B.points - A.points;
+            if (B.nrr !== A.nrr) return B.nrr - A.nrr;
+            if (B.wins !== A.wins) return B.wins - A.wins;
+            return B.runsFor - A.runsFor;
+        });
+
+        res.json({
+            tournamentName: tournament.tournamentName,
+            overs: tournament.overs,
+            teamNames: tournament.teamNames,
+            format: tournament.format,
+            groups: groupsObj,
+            matches: matchesObj,
+            matchResults: tournament.matchResults,
+            teamStats: tournament.teamStats,
+            standings
+        });
+    } catch (err) {
+        console.error('Error fetching tournament data', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Helper: generate all unique pairs for a team list
 function generatePairs(teams) {
     const pairs = [];
@@ -79,18 +201,32 @@ async function handleFormat(req, res) {
             tournament.groups = groupsObj['All Teams'];
         }
 
-        // Generate and persist matches for each group (randomized once)
-        const matchesObj = {};
-        if (Object.keys(groupsObj).length) {
-            Object.entries(groupsObj).forEach(([gname, teams]) => {
-                const pairs = generatePairs(teams);
-                shuffleArray(pairs);
-                matchesObj[gname] = pairs;
-            });
-        }
-        tournament.matches = matchesObj;
 
-        await tournament.save();
+        // Only generate and shuffle matches if not already present
+        if (!tournament.matches || Object.keys(tournament.matches).length === 0) {
+            const matchesObj = {};
+            if (Object.keys(groupsObj).length) {
+                Object.entries(groupsObj).forEach(([gname, teams]) => {
+                    const pairs = generatePairs(teams);
+                    shuffleArray(pairs);
+                    matchesObj[gname] = pairs;
+                });
+            }
+            tournament.matches = matchesObj;
+        }
+
+        tournament.markModified('matchResults');
+        tournament.markModified('teamStats');
+
+        await Tournament.updateOne(
+            { _id: tournament._id },
+            {
+                $set: {
+                    matchResults: tournament.matchResults,
+                    teamStats: tournament.teamStats
+                }
+            }
+        );
         res.json({ success: true });
 
     } catch (err) {
@@ -122,35 +258,38 @@ router.post('/tournament/:id/match-result', async (req, res) => {
     try {
         const payload = req.body || {};
         console.log('Received match-result for tournament', req.params.id, payload);
-        const { group, a, b, m, resultType } = payload;
+        const { group, a, b, resultType } = payload;
         const tournament = await Tournament.findById(req.params.id);
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
 
-        // initialize containers
-        tournament.matchResults = tournament.matchResults || {};
-        tournament.matches = tournament.matches || {};
-        tournament.teamStats = tournament.teamStats || {};
+        // Work with plain objects to avoid Mixed serialization edge cases.
+        const matchResults = JSON.parse(JSON.stringify(tournament.matchResults || {}));
+        const teamStats = JSON.parse(JSON.stringify(tournament.teamStats || {}));
 
         // Record result object
         const resultObj = Object.assign({}, payload, { recordedAt: new Date() });
 
         // store under group
         const grp = group || 'All Teams';
-        tournament.matchResults[grp] = tournament.matchResults[grp] || [];
+        matchResults[grp] = Array.isArray(matchResults[grp]) ? matchResults[grp] : [];
 
-        // prevent duplicate recording for same match number or same pair
-        const already = tournament.matchResults[grp].some(r => (r.m && payload.m && r.m === payload.m) || (r.a === a && r.b === b) || (r.a === b && r.b === a));
+
+        // prevent duplicate recording for same match number, group, and teams (order-insensitive)
+        const already = matchResults[grp].some(r => (
+            String(r.m) === String(payload.m) &&
+            ((r.a === a && r.b === b) || (r.a === b && r.b === a))
+        ));
         if (already) {
-            // continue but respond with conflict
-            return res.status(409).json({ error: 'Match result already recorded' });
+            // respond with conflict
+            return res.status(409).json({ error: 'Match result already recorded for this match number and teams' });
         }
 
-        tournament.matchResults[grp].push(resultObj);
+        matchResults[grp].push(resultObj);
 
         // Ensure teamStats entries exist
         function ensureTeam(t) {
-            if (!tournament.teamStats[t]) {
-                tournament.teamStats[t] = {
+            if (!teamStats[t]) {
+                teamStats[t] = {
                     played: 0,
                     wins: 0,
                     losses: 0,
@@ -178,47 +317,55 @@ router.post('/tournament/:id/match-result', async (req, res) => {
         const tbW = Number(payload.teamBWickets) || 0;
 
         // increment played for a and b (even for noresult/abandoned we'll mark as played)
-        tournament.teamStats[a].played += 1;
-        tournament.teamStats[b].played += 1;
+        teamStats[a].played += 1;
+        teamStats[b].played += 1;
 
         // runs and balls: only update when numeric scores/overs provided
         if (typeof payload.teamAScore !== 'undefined' && payload.teamAOvers) {
-            tournament.teamStats[a].runsFor += taScore;
-            tournament.teamStats[a].runsAgainst += tbScore;
-            tournament.teamStats[a].ballsFaced += taOversBalls;
-            tournament.teamStats[a].wicketsLost += taW;
+            teamStats[a].runsFor += taScore;
+            teamStats[a].runsAgainst += tbScore;
+            teamStats[a].ballsFaced += taOversBalls;
+            teamStats[a].wicketsLost += taW;
             // bowling side stats
-            tournament.teamStats[b].runsFor += tbScore;
-            tournament.teamStats[b].runsAgainst += taScore;
-            tournament.teamStats[b].ballsFaced += tbOversBalls;
-            tournament.teamStats[b].wicketsLost += tbW;
+            teamStats[b].runsFor += tbScore;
+            teamStats[b].runsAgainst += taScore;
+            teamStats[b].ballsFaced += tbOversBalls;
+            teamStats[b].wicketsLost += tbW;
             // wickets taken
-            tournament.teamStats[a].wicketsTaken += tbW;
-            tournament.teamStats[b].wicketsTaken += taW;
+            teamStats[a].wicketsTaken += tbW;
+            teamStats[b].wicketsTaken += taW;
             // ballsBowled (for NRR denominator when bowling)
-            tournament.teamStats[a].ballsBowled += tbOversBalls;
-            tournament.teamStats[b].ballsBowled += taOversBalls;
+            teamStats[a].ballsBowled += tbOversBalls;
+            teamStats[b].ballsBowled += taOversBalls;
         }
 
         // Points: Win=2, Tie/No Result=1, Loss=0
         if (resultType === 'A') {
-            tournament.teamStats[a].wins += 1;
-            tournament.teamStats[b].losses += 1;
-            tournament.teamStats[a].points += 2;
+            teamStats[a].wins += 1;
+            teamStats[b].losses += 1;
+            teamStats[a].points += 2;
         } else if (resultType === 'B') {
-            tournament.teamStats[b].wins += 1;
-            tournament.teamStats[a].losses += 1;
-            tournament.teamStats[b].points += 2;
+            teamStats[b].wins += 1;
+            teamStats[a].losses += 1;
+            teamStats[b].points += 2;
         } else if (resultType === 'tie' || resultType === 'noresult' || resultType === 'abandoned') {
-            tournament.teamStats[a].ties += 1;
-            tournament.teamStats[b].ties += 1;
-            tournament.teamStats[a].points += 1;
-            tournament.teamStats[b].points += 1;
+            teamStats[a].ties += 1;
+            teamStats[b].ties += 1;
+            teamStats[a].points += 1;
+            teamStats[b].points += 1;
         }
 
-        await tournament.save();
+        await Tournament.updateOne(
+            { _id: tournament._id },
+            {
+                $set: {
+                    matchResults,
+                    teamStats
+                }
+            }
+        );
 
-        res.json({ success: true, teamStats: tournament.teamStats[ a ], teamStatsB: tournament.teamStats[ b ] });
+        res.json({ success: true, teamStats: teamStats[a], teamStatsB: teamStats[b] });
 
     } catch (err) {
         console.error('Error saving match result', err);

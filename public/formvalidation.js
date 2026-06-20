@@ -23,13 +23,23 @@ document.addEventListener("DOMContentLoaded", () => {
     return true;
   }
 
-  function checkFormCompletion() {
-    const valid =
-      isFormatSelected() &&
-      isGroupSelectionValid() &&
-      allTeamNamesFilled();
+    function checkFormCompletion() {
+      const formatRadio = document.querySelector('input[name="format"]:checked');
+      const allTeamsFilled = allTeamNamesFilled();
+      let valid = false;
 
-    proceedBtn.disabled = !valid;
+      if (!formatRadio) {
+        proceedBtn.disabled = true;
+        return;
+      }
+
+      if (formatRadio.value === "roundrobin") {
+        valid = allTeamsFilled;
+      } else if (formatRadio.value === "groups") {
+        valid = allTeamsFilled && isGroupSelectionValid();
+      }
+
+      proceedBtn.disabled = !valid;
   }
 
   document.addEventListener("input", checkFormCompletion);
