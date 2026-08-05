@@ -8,3 +8,6 @@ build/
 .npm/
 .cache/
 .vscode/
+mongo-backup/
+*.bson
+*.metadata.json
