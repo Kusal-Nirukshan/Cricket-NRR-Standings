@@ -10,103 +10,229 @@ document.addEventListener('DOMContentLoaded', () => {
   const overs = oversParam ? Number(oversParam) : 50;
 
   const card = document.getElementById('matchCard');
+  let matchData = null;
+  let batFirstTeam = a;
+
   if (!a || !b) {
     card.textContent = 'Invalid match parameters.';
     return;
   }
 
-  card.innerHTML = `
-    <h2 class="match-title">${a} vs ${b}</h2>
-    <p><strong>Match #</strong> ${m || '-'}</p>
-    <p><strong>Group:</strong> ${group || 'N/A'}</p>
-    <p><strong>Tournament ID:</strong> ${tournamentId || '-'}</p>
-    <hr />
-    <div class="results">
-      <input type="number" id="teamAScore" placeholder="${a} Score" min="0" />
-      <input type="text" inputmode="decimal" class="overs-input" id="teamAOvers"  placeholder="${a} Overs Faced (e.g. 49.3)" />
-      <input type="number" id="teamAWickets" placeholder="${a} Wickets Lost" min="0" max="10" />
-    </div>
-    <div class="results">
-      <input type="number" id="teamBScore" placeholder="${b} Score" min="0" />
-      <input type="text" inputmode="decimal" class="overs-input" id="teamBOvers" placeholder="${b} Overs Faced (e.g. 50.0)" />
-      <input type="number" id="teamBWickets" placeholder="${b} Wickets Lost" min="0" max="10" />
-    </div>
+  function getTeamOrder() {
+    const topTeam = batFirstTeam === b ? b : a;
+    const bottomTeam = topTeam === a ? b : a;
+    return { topTeam, bottomTeam };
+  }
 
-    <div class="radio-group">
-      <label class="radio-card">
-        <input type="radio" name="resultType" value="A" checked>
-        <div class="card-content">
-          <h3>${a} Won</h3>
-          <p>Full result</p>
+  function getValuesByTeam(data) {
+    if (!data) return {};
+    return {
+      [a]: {
+        score: data.teamAScore ?? '',
+        overs: data.teamAOvers ?? '',
+        wickets: data.teamAWickets ?? ''
+      },
+      [b]: {
+        score: data.teamBScore ?? '',
+        overs: data.teamBOvers ?? '',
+        wickets: data.teamBWickets ?? ''
+      }
+    };
+  }
+
+  function readCurrentValuesByTeam() {
+    const { topTeam, bottomTeam } = getTeamOrder();
+    return {
+      [topTeam]: {
+        score: card.querySelector('#topTeamScore')?.value ?? '',
+        overs: card.querySelector('#topTeamOvers')?.value ?? '',
+        wickets: card.querySelector('#topTeamWickets')?.value ?? ''
+      },
+      [bottomTeam]: {
+        score: card.querySelector('#bottomTeamScore')?.value ?? '',
+        overs: card.querySelector('#bottomTeamOvers')?.value ?? '',
+        wickets: card.querySelector('#bottomTeamWickets')?.value ?? ''
+      }
+    };
+  }
+
+  function renderMatchCard(valuesByTeam = {}, selectedResultType = 'A') {
+    const { topTeam, bottomTeam } = getTeamOrder();
+    const topValues = valuesByTeam[topTeam] || {};
+    const bottomValues = valuesByTeam[bottomTeam] || {};
+
+    card.innerHTML = `
+      <h2 class="match-title" id="matchTitle">${topTeam} vs ${bottomTeam}</h2>
+      <p><strong>Match #</strong> ${m || '-'}</p>
+      <p><strong>Group:</strong> ${group || 'N/A'}</p>
+      <p><strong>Tournament ID:</strong> ${tournamentId || '-'}</p>
+      <div class="bat-first-control">
+        <label for="batFirstSelect"><strong>Bat first:</strong></label>
+        <select id="batFirstSelect">
+          <option value="${a}">${a}</option>
+          <option value="${b}">${b}</option>
+        </select>
+      </div>
+      <hr />
+      <div class="team-stack">
+        <div class="team-block">
+          <h3 id="topTeamLabel">${topTeam}</h3>
+          <div class="results">
+            <input type="number" id="topTeamScore" placeholder="${topTeam} Score" min="0" />
+            <input type="text" inputmode="decimal" class="overs-input" id="topTeamOvers" placeholder="${topTeam} Overs Faced (e.g. 49.3)" />
+            <input type="number" id="topTeamWickets" placeholder="${topTeam} Wickets Lost" min="0" max="10" />
+          </div>
         </div>
-      </label>
-
-      <label class="radio-card">
-        <input type="radio" name="resultType" value="B">
-        <div class="card-content">
-          <h3>${b} Won</h3>
-          <p>Full result</p>
+        <div class="team-block">
+          <h3 id="bottomTeamLabel">${bottomTeam}</h3>
+          <div class="results">
+            <input type="number" id="bottomTeamScore" placeholder="${bottomTeam} Score" min="0" />
+            <input type="text" inputmode="decimal" class="overs-input" id="bottomTeamOvers" placeholder="${bottomTeam} Overs Faced (e.g. 50.0)" />
+            <input type="number" id="bottomTeamWickets" placeholder="${bottomTeam} Wickets Lost" min="0" max="10" />
+          </div>
         </div>
-      </label>
+      </div>
 
-      <label class="radio-card">
-        <input type="radio" name="resultType" value="tie">
-        <div class="card-content">
-          <h3>Match Tied</h3>
-          <p>Both teams equal</p>
-        </div>
-      </label>
+      <div class="radio-group">
+        <label class="radio-card">
+          <input type="radio" name="resultType" value="A" ${selectedResultType === 'A' ? 'checked' : ''}>
+          <div class="card-content">
+            <h3>${a} Won</h3>
+            <p>Full result</p>
+          </div>
+        </label>
 
-      <label class="radio-card">
-        <input type="radio" name="resultType" value="abandoned">
-        <div class="card-content">
-          <h3>Abandoned</h3>
-          <p>Match abandoned</p>
-        </div>
-      </label>
+        <label class="radio-card">
+          <input type="radio" name="resultType" value="B" ${selectedResultType === 'B' ? 'checked' : ''}>
+          <div class="card-content">
+            <h3>${b} Won</h3>
+            <p>Full result</p>
+          </div>
+        </label>
 
-      <label class="radio-card">
-        <input type="radio" name="resultType" value="noresult">
-        <div class="card-content">
-          <h3>No Result</h3>
-          <p>Weather/other</p>
-        </div>
-      </label>
-    </div>
-    <button id="saveResultBtn" class="btn">Save Result</button>
-  `;
+        <label class="radio-card">
+          <input type="radio" name="resultType" value="tie" ${selectedResultType === 'tie' ? 'checked' : ''}>
+          <div class="card-content">
+            <h3>Match Tied</h3>
+            <p>Both teams equal</p>
+          </div>
+        </label>
 
-  // Helper to populate fields if match data exists
-  function populateFields(matchData) {
-    if (!matchData) return;
-    card.querySelector('#teamAScore').value = matchData.teamAScore ?? '';
-    card.querySelector('#teamAOvers').value = matchData.teamAOvers ?? '';
-    card.querySelector('#teamAWickets').value = matchData.teamAWickets ?? '';
-    card.querySelector('#teamBScore').value = matchData.teamBScore ?? '';
-    card.querySelector('#teamBOvers').value = matchData.teamBOvers ?? '';
-    card.querySelector('#teamBWickets').value = matchData.teamBWickets ?? '';
-    if (matchData.resultType) {
-      const radio = card.querySelector(`input[name="resultType"][value="${matchData.resultType}"]`);
-      if (radio) radio.checked = true;
-    }
+        <label class="radio-card">
+          <input type="radio" name="resultType" value="abandoned" ${selectedResultType === 'abandoned' ? 'checked' : ''}>
+          <div class="card-content">
+            <h3>Abandoned</h3>
+            <p>Match abandoned</p>
+          </div>
+        </label>
+
+        <label class="radio-card">
+          <input type="radio" name="resultType" value="noresult" ${selectedResultType === 'noresult' ? 'checked' : ''}>
+          <div class="card-content">
+            <h3>No Result</h3>
+            <p>Weather/other</p>
+          </div>
+        </label>
+      </div>
+      <button id="saveResultBtn" class="btn">Save Result</button>
+    `;
+
+    card.querySelector('#batFirstSelect').value = batFirstTeam;
+    card.querySelector('#topTeamScore').value = topValues.score ?? '';
+    card.querySelector('#topTeamOvers').value = topValues.overs ?? '';
+    card.querySelector('#topTeamWickets').value = topValues.wickets ?? '';
+    card.querySelector('#bottomTeamScore').value = bottomValues.score ?? '';
+    card.querySelector('#bottomTeamOvers').value = bottomValues.overs ?? '';
+    card.querySelector('#bottomTeamWickets').value = bottomValues.wickets ?? '';
+
+    attachOversValidation('.overs-input');
+    attachNumericClamp('#topTeamWickets, #bottomTeamWickets', 0, 10);
+
+    card.querySelector('#batFirstSelect').addEventListener('change', (event) => {
+      const currentValues = readCurrentValuesByTeam();
+      batFirstTeam = event.target.value;
+      renderMatchCard(currentValues, card.querySelector('input[name="resultType"]:checked')?.value || 'A');
+    });
+
+    card.querySelector('#saveResultBtn').addEventListener('click', () => {
+      const resultType = card.querySelector('input[name="resultType"]:checked')?.value || 'A';
+      const topTeamValues = {
+        score: Number(card.querySelector('#topTeamScore').value) || 0,
+        overs: card.querySelector('#topTeamOvers').value,
+        wickets: Number(card.querySelector('#topTeamWickets').value) || 0
+      };
+      const bottomTeamValues = {
+        score: Number(card.querySelector('#bottomTeamScore').value) || 0,
+        overs: card.querySelector('#bottomTeamOvers').value,
+        wickets: Number(card.querySelector('#bottomTeamWickets').value) || 0
+      };
+
+      if (resultType === 'A' || resultType === 'B') {
+        if (topTeamValues.score === 0 && bottomTeamValues.score === 0) { alert('Enter team scores for a completed match'); return; }
+      }
+
+      const { topTeam, bottomTeam } = getTeamOrder();
+      const teamAValues = a === topTeam ? topTeamValues : bottomTeamValues;
+      const teamBValues = b === topTeam ? topTeamValues : bottomTeamValues;
+
+      const payload = {
+        tournamentId,
+        group,
+        a,
+        b,
+        m,
+        resultType,
+        batFirstTeam,
+        teamAScore: teamAValues.score,
+        teamBScore: teamBValues.score,
+        teamAOvers: teamAValues.overs,
+        teamBOvers: teamBValues.overs,
+        teamAWickets: teamAValues.wickets,
+        teamBWickets: teamBValues.wickets
+      };
+      console.log('Saving match result', payload);
+      (async () => {
+        try {
+          const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/match-result`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.status === 409) {
+            alert('This match result has already been recorded.');
+            return;
+          }
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          await res.json();
+          const matchKey = `matchdata_${tournamentId}_${group}_${m}`;
+          localStorage.setItem(matchKey, JSON.stringify(payload));
+          alert('Result saved. The NRR table will now update.');
+          if (window.opener && !window.opener.closed) {
+            window.opener.location.reload();
+          }
+          window.location.href = `/nrrtable.html?id=${encodeURIComponent(tournamentId)}`;
+        } catch (err) {
+          console.error(err);
+          alert('Failed to save result. See console.');
+        }
+      })();
+    });
   }
 
   // Try to load saved match data from server (persistent) or localStorage (fallback)
   (async () => {
-    let matchData = null;
     try {
       if (tournamentId && group && m) {
         const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/data`);
         if (res.ok) {
           const data = await res.json();
-          // Find match result for this group and match number (order-insensitive)
           if (data.matchResults && data.matchResults[group]) {
             matchData = data.matchResults[group].find(r => String(r.m) === String(m) && ((r.a === a && r.b === b) || (r.a === b && r.b === a)));
           }
         }
       }
     } catch (e) { /* ignore */ }
-    // Fallback: try localStorage (if used previously)
+
     if (!matchData) {
       const matchKey = `matchdata_${tournamentId}_${group}_${m}`;
       const local = localStorage.getItem(matchKey);
@@ -114,7 +240,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try { matchData = JSON.parse(local); } catch {}
       }
     }
-    if (matchData) populateFields(matchData);
+
+    if (matchData?.batFirstTeam === b) {
+      batFirstTeam = b;
+    } else {
+      batFirstTeam = a;
+    }
+
+    renderMatchCard(getValuesByTeam(matchData), matchData?.resultType || 'A');
   })();
 
   // validation helpers for overs inputs
@@ -175,9 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // attach validation to both overs inputs
-  attachOversValidation('.overs-input');
-
   // clamp numeric inputs (wickets) to min/max and prevent wheel/arrow changes
   function attachNumericClamp(selector, min, max) {
     const inputs = card.querySelectorAll(selector);
@@ -199,58 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
-
-  attachNumericClamp('#teamAWickets, #teamBWickets', 0, 10);
-
-  function pointsdistributionExample() {
-      return 'e.g., Win: 2 pts, Tie/No Result: 1 pt, Loss: 0 pts';
-  };
-
-  // Save button handler — collect fields and result type
-  document.getElementById('saveResultBtn').addEventListener('click', () => {
-    const resultType = card.querySelector('input[name="resultType"]:checked')?.value || 'A';
-    const teamAScore = Number(card.querySelector('#teamAScore').value) || 0;
-    const teamBScore = Number(card.querySelector('#teamBScore').value) || 0;
-    const teamAOvers = card.querySelector('#teamAOvers').value;
-    const teamBOvers = card.querySelector('#teamBOvers').value;
-    const teamAWickets = Number(card.querySelector('#teamAWickets').value) || 0;
-    const teamBWickets = Number(card.querySelector('#teamBWickets').value) || 0;
-
-    if (resultType === 'A' || resultType === 'B') {
-      if (teamAScore === 0 && teamBScore === 0) { alert('Enter team scores for a completed match'); return; }
-    }
-
-    const payload = { tournamentId, group, a, b, m, resultType, teamAScore, teamBScore, teamAOvers, teamBOvers, teamAWickets, teamBWickets };
-    console.log('Saving match result', payload);
-    (async () => {
-      try {
-        const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/match-result`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.status === 409) {
-          alert('This match result has already been recorded.');
-          return;
-        }
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        // Save match data to localStorage for quick reload
-        const matchKey = `matchdata_${tournamentId}_${group}_${m}`;
-        localStorage.setItem(matchKey, JSON.stringify(payload));
-        alert('Result saved. The NRR table will now update.');
-        // If the NRR table is open in another tab, reload it
-        if (window.opener && !window.opener.closed) {
-          window.opener.location.reload();
-        }
-        // Optionally, open or focus the NRR table in this tab
-        window.location.href = `/nrrtable.html?id=${encodeURIComponent(tournamentId)}`;
-      } catch (err) {
-        console.error(err);
-        alert('Failed to save result. See console.');
-      }
-    })();
-  });
 
   document.getElementById('backBtn').addEventListener('click', () => {
     // go back to matches for this tournament

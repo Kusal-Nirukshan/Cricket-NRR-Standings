@@ -69,6 +69,16 @@ tr:nth-child(even) {
     box-shadow: 0 4px 8px rgba(0,0,0,0.08); 
 }
 
+.match-btn.match-completed {
+    background-color: #2e8b57;
+    color: #ffffff;
+    border-color: #1e5a35;
+}
+
+.match-btn.match-completed:hover {
+    background-color: #3cb371;
+}
+
 .matches-list { 
     display:inline-block; 
     flex-wrap:wrap; 

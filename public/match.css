@@ -3,6 +3,7 @@
     border:1px solid #ddd; 
     border-radius:6px; 
     margin:12px; 
+    box-sizing: border-box;
 }
 
 .actions { 
@@ -39,18 +40,48 @@ p {
     margin: 10px 0;
     padding: 10px;
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
 }
 
-.results input {
+.bat-first-control {
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #e0ffe0;
+}
+
+.bat-first-control select {
+    padding: 8px 10px;
+    border: 1px solid #31cb55;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.team-stack {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    width: 90%;
     gap: 12px;
+}
+
+.team-block {
+    padding: 8px 0;
+}
+
+.team-block h3 {
+    margin: 0 0 8px;
+    color: #4bff3b;
+}
+
+.results input {
+    flex: 1 1 220px;
+    width: 100%;
+    min-width: 0;
     margin: 0;
     padding: 10px;
     border: 1px solid #31cb55;
     border-radius: 4px;
+    box-sizing: border-box;
 }
 
 .results input:focus {
@@ -89,10 +120,10 @@ Suggestion:
 
 /* radio-card styles similar to tournament page */
 .radio-card { 
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    width: 100%;
-    gap: 15px;
+    display: flex;
+    flex: 1 1 180px;
+    width: auto;
+    min-width: 0;
     margin: 0;
     margin:8px; 
     cursor:pointer; 
@@ -133,4 +164,4 @@ Suggestion:
     transform:translateY(-2px);
 }
 
-.radio-group { display:flex; gap:12px; align-items:flex-start; margin:12px 0; }
+.radio-group { display:flex; flex-wrap: wrap; gap:12px; align-items:flex-start; margin:12px 0; }

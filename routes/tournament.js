@@ -8,6 +8,7 @@ function createEmptyTeamStats() {
         wins: 0,
         losses: 0,
         ties: 0,
+        noResults: 0,
         points: 0,
         runsFor: 0,
         runsAgainst: 0,
@@ -16,6 +17,105 @@ function createEmptyTeamStats() {
         wicketsLost: 0,
         wicketsTaken: 0
     };
+}
+
+function oversToBalls(s) {
+    if (s === null || typeof s === 'undefined' || s === '') return 0;
+    const str = String(s).trim();
+    if (!str) return 0;
+    if (!str.includes('.')) return (Number(str) || 0) * 6;
+    const parts = str.split('.');
+    const overs = Number(parts[0]) || 0;
+    let balls = Number(parts[1]) || 0;
+    if (balls > 5) balls = 5;
+    return overs * 6 + balls;
+}
+
+function inningsBalls(oversValue, wickets, maxOvers) {
+    const maxBalls = (Number(maxOvers) || 0) * 6;
+    if ((Number(wickets) || 0) >= 10 && maxBalls > 0) return maxBalls;
+    return oversToBalls(oversValue);
+}
+
+function ensureTeamStatsEntry(statsMap, teamName) {
+    if (!teamName) return;
+    if (!statsMap[teamName]) {
+        statsMap[teamName] = createEmptyTeamStats();
+    }
+}
+
+function deriveTeamStatsFromResults(teamNames, matchResults, maxOvers) {
+    const statsMap = {};
+
+    (Array.isArray(teamNames) ? teamNames : []).forEach((team) => ensureTeamStatsEntry(statsMap, team));
+
+    Object.values(matchResults || {}).forEach((results) => {
+        if (!Array.isArray(results)) return;
+
+        results.forEach((payload) => {
+            const a = payload && payload.a;
+            const b = payload && payload.b;
+            if (!a || !b) return;
+
+            ensureTeamStatsEntry(statsMap, a);
+            ensureTeamStatsEntry(statsMap, b);
+
+            const teamAScore = Number(payload.teamAScore) || 0;
+            const teamBScore = Number(payload.teamBScore) || 0;
+            const teamAWickets = Number(payload.teamAWickets) || 0;
+            const teamBWickets = Number(payload.teamBWickets) || 0;
+            const teamABallsFaced = inningsBalls(payload.teamAOvers, teamAWickets, maxOvers);
+            const teamBBallsFaced = inningsBalls(payload.teamBOvers, teamBWickets, maxOvers);
+
+            statsMap[a].played += 1;
+            statsMap[b].played += 1;
+
+            const hasInningsData = (
+                typeof payload.teamAScore !== 'undefined' &&
+                (payload.teamAOvers || payload.teamBOvers || teamAWickets >= 10 || teamBWickets >= 10)
+            );
+
+            if (hasInningsData) {
+                statsMap[a].runsFor += teamAScore;
+                statsMap[a].runsAgainst += teamBScore;
+                statsMap[a].ballsFaced += teamABallsFaced;
+                statsMap[a].wicketsLost += teamAWickets;
+
+                statsMap[b].runsFor += teamBScore;
+                statsMap[b].runsAgainst += teamAScore;
+                statsMap[b].ballsFaced += teamBBallsFaced;
+                statsMap[b].wicketsLost += teamBWickets;
+
+                statsMap[a].wicketsTaken += teamBWickets;
+                statsMap[b].wicketsTaken += teamAWickets;
+
+                statsMap[a].ballsBowled += teamBBallsFaced;
+                statsMap[b].ballsBowled += teamABallsFaced;
+            }
+
+            if (payload.resultType === 'A') {
+                statsMap[a].wins += 1;
+                statsMap[b].losses += 1;
+                statsMap[a].points += 2;
+            } else if (payload.resultType === 'B') {
+                statsMap[b].wins += 1;
+                statsMap[a].losses += 1;
+                statsMap[b].points += 2;
+            } else if (payload.resultType === 'tie') {
+                statsMap[a].ties += 1;
+                statsMap[b].ties += 1;
+                statsMap[a].points += 1;
+                statsMap[b].points += 1;
+            } else if (payload.resultType === 'noresult' || payload.resultType === 'abandoned') {
+                statsMap[a].noResults = (Number(statsMap[a].noResults) || 0) + 1;
+                statsMap[b].noResults = (Number(statsMap[b].noResults) || 0) + 1;
+                statsMap[a].points += 1;
+                statsMap[b].points += 1;
+            }
+        });
+    });
+
+    return statsMap;
 }
 
 function normalizeGroups(tournament) {
@@ -71,7 +171,8 @@ router.get('/tournament/:id/data', async (req, res) => {
             await tournament.save();
         }
 
-        const teamStats = (tournament.teamStats && typeof tournament.teamStats === 'object') ? tournament.teamStats : {};
+        const teamStats = deriveTeamStatsFromResults(tournament.teamNames, tournament.matchResults, tournament.overs);
+        
         const standings = Object.keys(teamStats).map((teamName) => {
             const s = teamStats[teamName] || {};
             const runsFor = Number(s.runsFor) || 0;
@@ -91,6 +192,7 @@ router.get('/tournament/:id/data', async (req, res) => {
                 wins: Number(s.wins) || 0,
                 losses: Number(s.losses) || 0,
                 ties: Number(s.ties) || 0,
+                noResults: Number(s.noResults) || 0,
                 points: Number(s.points) || 0,
                 runsFor,
                 runsAgainst,
@@ -115,7 +217,7 @@ router.get('/tournament/:id/data', async (req, res) => {
             groups: groupsObj,
             matches: matchesObj,
             matchResults: tournament.matchResults,
-            teamStats: tournament.teamStats,
+            teamStats,
             standings
         });
     } catch (err) {
@@ -175,85 +277,81 @@ router.get('/tournament/:id', async (req, res) => {
     `);
 });
 
-// Accept either POST or PUT for backwards compatibility
-async function handleFormat(req, res) {
+/* ---------- Save setup ---------- */
+router.put('/tournament/:id/setup', async (req, res) => {
     try {
-        const { format, numGroups, teamNames, groupCount } = req.body;
-        const tournament = await Tournament.findById(req.params.id);
-        if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+        const { id } = req.params;
+        const { format, teamNames, groups } = req.body;
+
+        const tournament = await Tournament.findById(id);
+
+        if (!tournament) {
+            return res.status(404).json({ success: false, error: 'Tournament not found' });
+        }
 
         tournament.format = format;
-        tournament.teamNames = teamNames || tournament.teamNames || [];
+        tournament.teamNames = teamNames;
 
-        const groupsObj = {};
-        const ng = numGroups || groupCount || 0;
+        const groupsMap = {};
 
-        if (format === 'groups' && ng && Array.isArray(tournament.teamNames) && tournament.teamNames.length) {
-            const teamsPerGroup = Math.floor(tournament.teamNames.length / ng);
-            for (let i = 0; i < ng; i++) {
-                const groupName = `Group ${i + 1}`;
-                groupsObj[groupName] = tournament.teamNames.slice(i * teamsPerGroup, (i + 1) * teamsPerGroup);
+        // If client passed a numeric group count, split teamNames into groups object
+        if (format === 'groups' && groups && Number.isFinite(Number(groups))) {
+            const groupCount = Number(groups);
+
+            // create empty arrays
+            for (let i = 0; i < groupCount; i++) {
+                // Name groups as Group 1, Group 2, ...
+                groupsMap[`Group ${i + 1}`] = [];
             }
-            tournament.groups = groupsObj;
-        } else if (Array.isArray(tournament.teamNames) && tournament.teamNames.length) {
-            // No groups requested — treat as single group 'All Teams'
-            groupsObj['All Teams'] = tournament.teamNames.slice();
-            tournament.groups = groupsObj['All Teams'];
+
+            // distribute teams round-robin into groups
+            for (let i = 0; i < (teamNames || []).length; i++) {
+                const grpIndex = i % groupCount;
+                const grpName = `Group ${grpIndex + 1}`;
+                groupsMap[grpName].push(teamNames[i]);
+            }
+
+            tournament.groups = groupsMap;
+        } else {
+            groupsMap['All Teams'] = Array.isArray(teamNames) ? teamNames.slice() : [];
+            tournament.groups = null;
         }
 
+        // Persist a stable schedule once during setup.
+        const matchesObj = {};
+        Object.entries(groupsMap).forEach(([groupName, teams]) => {
+            const pairs = generatePairs(Array.isArray(teams) ? teams : []);
+            shuffleArray(pairs);
+            matchesObj[groupName] = pairs;
+        });
+        tournament.matches = matchesObj;
 
-        // Only generate and shuffle matches if not already present
-        if (!tournament.matches || Object.keys(tournament.matches).length === 0) {
-            const matchesObj = {};
-            if (Object.keys(groupsObj).length) {
-                Object.entries(groupsObj).forEach(([gname, teams]) => {
-                    const pairs = generatePairs(teams);
-                    shuffleArray(pairs);
-                    matchesObj[gname] = pairs;
-                });
-            }
-            tournament.matches = matchesObj;
-        }
+        // Initialize stats for all teams so unplayed teams appear in standings.
+        const statsObj = (tournament.teamStats && typeof tournament.teamStats === 'object') ? tournament.teamStats : {};
+        (Array.isArray(teamNames) ? teamNames : []).forEach((team) => {
+            if (!team) return;
+            if (!statsObj[team]) statsObj[team] = createEmptyTeamStats();
+        });
+        tournament.teamStats = statsObj;
 
-        tournament.markModified('matchResults');
-        tournament.markModified('teamStats');
+        // Keep result container initialized for each group.
+        const resultObj = (tournament.matchResults && typeof tournament.matchResults === 'object') ? tournament.matchResults : {};
+        Object.keys(groupsMap).forEach((groupName) => {
+            if (!Array.isArray(resultObj[groupName])) resultObj[groupName] = [];
+        });
+        tournament.matchResults = resultObj;
 
-        await Tournament.updateOne(
-            { _id: tournament._id },
-            {
-                $set: {
-                    matchResults: tournament.matchResults,
-                    teamStats: tournament.teamStats
-                }
-            }
-        );
+        await tournament.save();
+
         res.json({ success: true });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, error: 'Server error' });
+        console.error('❌ SETUP ERROR:', err);
+        res.status(500).json({ success: false });
     }
-}
+});
 
-router.post('/tournament/:id/format', handleFormat);
-router.put('/tournament/:id/format', handleFormat);
-
-// Helper to parse overs string like "49.3" -> balls (49 overs and 3 balls = 49*6+3)
-function oversToBalls(s) {
-    if (!s && s !== 0) return 0;
-    if (typeof s === 'number') return Math.floor(s) * 6;
-    const str = String(s).trim();
-    if (!str) return 0;
-    if (!str.includes('.')) return (Number(str) || 0) * 6;
-    const parts = str.split('.');
-    const overs = Number(parts[0]) || 0;
-    let balls = Number(parts[1]) || 0;
-    // guard: balls should be 0-5
-    if (balls > 5) balls = Math.min(balls, 5);
-    return overs * 6 + balls;
-}
-
-// Save a match result and update per-team stats
+// Save a match result and update per-team stats (supports editing/replacing results)
 router.post('/tournament/:id/match-result', async (req, res) => {
     try {
         const payload = req.body || {};
@@ -264,96 +362,27 @@ router.post('/tournament/:id/match-result', async (req, res) => {
 
         // Work with plain objects to avoid Mixed serialization edge cases.
         const matchResults = JSON.parse(JSON.stringify(tournament.matchResults || {}));
-        const teamStats = JSON.parse(JSON.stringify(tournament.teamStats || {}));
-
-        // Record result object
-        const resultObj = Object.assign({}, payload, { recordedAt: new Date() });
 
         // store under group
         const grp = group || 'All Teams';
         matchResults[grp] = Array.isArray(matchResults[grp]) ? matchResults[grp] : [];
 
-
-        // prevent duplicate recording for same match number, group, and teams (order-insensitive)
-        const already = matchResults[grp].some(r => (
+        // Check if a result already exists for this match number and teams (order-insensitive)
+        const existingIdx = matchResults[grp].findIndex(r => (
             String(r.m) === String(payload.m) &&
             ((r.a === a && r.b === b) || (r.a === b && r.b === a))
         ));
-        if (already) {
-            // respond with conflict
-            return res.status(409).json({ error: 'Match result already recorded for this match number and teams' });
+
+        const resultObj = Object.assign({}, payload, { recordedAt: new Date() });
+
+        if (existingIdx !== -1) {
+            matchResults[grp][existingIdx] = resultObj;
+        } else {
+            matchResults[grp].push(resultObj);
         }
 
-        matchResults[grp].push(resultObj);
-
-        // Ensure teamStats entries exist
-        function ensureTeam(t) {
-            if (!teamStats[t]) {
-                teamStats[t] = {
-                    played: 0,
-                    wins: 0,
-                    losses: 0,
-                    ties: 0,
-                    points: 0,
-                    runsFor: 0,
-                    runsAgainst: 0,
-                    ballsFaced: 0,
-                    ballsBowled: 0,
-                    wicketsLost: 0,
-                    wicketsTaken: 0
-                };
-            }
-        }
-
-        ensureTeam(a);
-        ensureTeam(b);
-
-        // Update stats depending on resultType
-        const taScore = Number(payload.teamAScore) || 0;
-        const tbScore = Number(payload.teamBScore) || 0;
-        const taOversBalls = oversToBalls(payload.teamAOvers);
-        const tbOversBalls = oversToBalls(payload.teamBOvers);
-        const taW = Number(payload.teamAWickets) || 0;
-        const tbW = Number(payload.teamBWickets) || 0;
-
-        // increment played for a and b (even for noresult/abandoned we'll mark as played)
-        teamStats[a].played += 1;
-        teamStats[b].played += 1;
-
-        // runs and balls: only update when numeric scores/overs provided
-        if (typeof payload.teamAScore !== 'undefined' && payload.teamAOvers) {
-            teamStats[a].runsFor += taScore;
-            teamStats[a].runsAgainst += tbScore;
-            teamStats[a].ballsFaced += taOversBalls;
-            teamStats[a].wicketsLost += taW;
-            // bowling side stats
-            teamStats[b].runsFor += tbScore;
-            teamStats[b].runsAgainst += taScore;
-            teamStats[b].ballsFaced += tbOversBalls;
-            teamStats[b].wicketsLost += tbW;
-            // wickets taken
-            teamStats[a].wicketsTaken += tbW;
-            teamStats[b].wicketsTaken += taW;
-            // ballsBowled (for NRR denominator when bowling)
-            teamStats[a].ballsBowled += tbOversBalls;
-            teamStats[b].ballsBowled += taOversBalls;
-        }
-
-        // Points: Win=2, Tie/No Result=1, Loss=0
-        if (resultType === 'A') {
-            teamStats[a].wins += 1;
-            teamStats[b].losses += 1;
-            teamStats[a].points += 2;
-        } else if (resultType === 'B') {
-            teamStats[b].wins += 1;
-            teamStats[a].losses += 1;
-            teamStats[b].points += 2;
-        } else if (resultType === 'tie' || resultType === 'noresult' || resultType === 'abandoned') {
-            teamStats[a].ties += 1;
-            teamStats[b].ties += 1;
-            teamStats[a].points += 1;
-            teamStats[b].points += 1;
-        }
+        // Re-derive teamStats from all match results to ensure 100% correct, consistent statistics
+        const teamStats = deriveTeamStatsFromResults(tournament.teamNames, matchResults, tournament.overs);
 
         await Tournament.updateOne(
             { _id: tournament._id },
@@ -372,6 +401,5 @@ router.post('/tournament/:id/match-result', async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
-
 
 module.exports = router;

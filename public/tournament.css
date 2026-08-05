@@ -280,6 +280,7 @@ h4 {
     color: #a50000;
     border: 1px solid #ff0000;
     transition: all 0.3s ease;
+    display: none;
 }
 
 .success-message {
@@ -292,4 +293,5 @@ h4 {
     color: #006600;
     border: 1px solid #00aa00;
     transition: all 0.3s ease;
+    display: none;
 }
