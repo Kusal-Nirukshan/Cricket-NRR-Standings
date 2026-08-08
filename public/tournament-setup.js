@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             message: 'The free server may be waking up. This can take a few seconds.'
         });
         if (res.ok) {
-            const data = await res.json();
+            const data = await AppLoading.readJson(res);
             titleEl.textContent = data.tournamentName || 'Cricket Tournament';
             detailsEl.textContent = `${teamCount || data.teams || 0} Teams • ${oversCount || data.overs || 0} Overs Per Side`;
         }
@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 message: 'Please wait while the tournament setup is saved.'
             });
 
-            const data = await res.json();
+            const data = await AppLoading.readJson(res);
             if (data.success) {
                 window.location.href = `/nrrtable.html?id=${encodeURIComponent(tournamentId)}`;
             } else {

@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 message: 'The tournament will open as soon as the backend responds.'
             });
 
-            const result = await res.json();
+            const result = await AppLoading.readJson(res);
             const id = result.id || result._id;
 
             if (id) {

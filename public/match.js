@@ -205,8 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('This match result has already been recorded.');
             return;
           }
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          await res.json();
+          await AppLoading.readJson(res);
           const matchKey = `matchdata_${tournamentId}_${group}_${m}`;
           localStorage.setItem(matchKey, JSON.stringify(payload));
           alert('Result saved. The NRR table will now update.');
@@ -231,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
           message: 'The free server may be waking up. This can take a few seconds.'
         });
         if (res.ok) {
-          const data = await res.json();
+          const data = await AppLoading.readJson(res);
           if (data.matchResults && data.matchResults[group]) {
             matchData = data.matchResults[group].find(r => String(r.m) === String(m) && ((r.a === a && r.b === b) || (r.a === b && r.b === a)));
           }

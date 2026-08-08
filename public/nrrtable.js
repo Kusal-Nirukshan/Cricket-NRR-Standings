@@ -16,8 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: 'Loading table...',
             message: 'The free server may be waking up. This can take a few seconds.'
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await AppLoading.readJson(res);
 
         titleEl.textContent = "NRR Table - " + (data.tournamentName || 'Tournament');
 

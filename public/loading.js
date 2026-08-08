@@ -88,11 +88,69 @@
         return withLoading(() => fetch(apiUrl(resource), fetchOptions), loadingOptions);
     }
 
+    function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function pollHealth() {
+        while (true) {
+            try {
+                const response = await fetch(apiUrl('/health'), { cache: 'no-store' });
+                if (response.ok) return;
+            } catch (err) {
+                console.error('Backend health check failed:', err);
+            }
+
+            await wait(2000);
+        }
+    }
+
+    async function wakeBackend() {
+        try {
+            await withLoading(async () => {
+                await Promise.all([
+                    pollHealth(),
+                    wait(2000)
+                ]);
+            }, {
+                title: 'Starting server...',
+                message: 'Checking that the server is ready before you continue.',
+                delay: 0
+            });
+        } catch (err) {
+            console.error('Backend wake check failed:', err);
+        }
+    }
+
+    async function readJson(response) {
+        const text = await response.text();
+        let data = null;
+
+        if (text) {
+            try {
+                data = JSON.parse(text);
+            } catch (err) {
+                const preview = text.replace(/\s+/g, ' ').slice(0, 140);
+                throw new Error(`Expected JSON but received: ${preview}`);
+            }
+        }
+
+        if (!response.ok) {
+            throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
+        }
+
+        return data;
+    }
+
     window.AppLoading = {
         show,
         hide,
         withLoading,
         apiUrl,
-        fetch: fetchWithLoading
+        fetch: fetchWithLoading,
+        readJson,
+        wakeBackend
     };
+
+    document.addEventListener('DOMContentLoaded', wakeBackend);
 })();
