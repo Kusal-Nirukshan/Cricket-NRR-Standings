@@ -193,10 +193,13 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Saving match result', payload);
       (async () => {
         try {
-          const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/match-result`, {
+          const res = await AppLoading.fetch(`/tournament/${encodeURIComponent(tournamentId)}/match-result`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
+          }, {
+            title: 'Saving result...',
+            message: 'Please wait while the NRR table is updated.'
           });
           if (res.status === 409) {
             alert('This match result has already been recorded.');
@@ -223,7 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     try {
       if (tournamentId && group && m) {
-        const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/data`);
+        const res = await AppLoading.fetch(`/tournament/${encodeURIComponent(tournamentId)}/data`, undefined, {
+          title: 'Loading match...',
+          message: 'The free server may be waking up. This can take a few seconds.'
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.matchResults && data.matchResults[group]) {

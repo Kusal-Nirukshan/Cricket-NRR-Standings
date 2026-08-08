@@ -32,7 +32,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 1. Load Tournament Metadata ---
     try {
-        const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/data`);
+        const res = await AppLoading.fetch(`/tournament/${encodeURIComponent(tournamentId)}/data`, undefined, {
+            title: 'Loading tournament...',
+            message: 'The free server may be waking up. This can take a few seconds.'
+        });
         if (res.ok) {
             const data = await res.json();
             titleEl.textContent = data.tournamentName || 'Cricket Tournament';
@@ -180,7 +183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            const res = await fetch(`/tournament/${encodeURIComponent(tournamentId)}/setup`, {
+            const res = await AppLoading.fetch(`/tournament/${encodeURIComponent(tournamentId)}/setup`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -188,6 +191,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     teamNames: teams,
                     groups: groupsPayload
                 })
+            }, {
+                title: 'Saving setup...',
+                message: 'Please wait while the tournament setup is saved.'
             });
 
             const data = await res.json();

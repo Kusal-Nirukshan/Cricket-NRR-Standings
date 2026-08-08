@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         try {
-            const res = await fetch('/create-tournament', {
+            const res = await AppLoading.fetch('/create-tournament', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -30,6 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     overs,
                     teams
                 })
+            }, {
+                title: 'Starting server...',
+                message: 'The tournament will open as soon as the backend responds.'
             });
 
             const result = await res.json();
