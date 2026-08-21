@@ -24,13 +24,12 @@
                     <span>NRR Calculator</span>
                 </div>
                 <div class="app-loading-terminal">
-                    <h2 id="appLoadingTitle">Starting server...</h2>
-                    <p id="appLoadingMessage">The free Render server may need a few seconds to wake up.</p>
+                    <h2 id="appLoadingTitle">Please wait, loading...</h2>
+                    <p id="appLoadingMessage">Preparing your NRR calculator.</p>
                     <div class="app-loading-lines" aria-hidden="true">
-                        <span>INCOMING HTTP REQUEST DETECTED ...</span>
-                        <span>SERVICE WAKING UP ...</span>
-                        <span>ALLOCATING COMPUTE RESOURCES ...</span>
-                        <span>PREPARING INSTANCE FOR INITIALIZATION ...</span>
+                        <span>Checking server connection ...</span>
+                        <span>Loading tournament tools ...</span>
+                        <span>Preparing match data ...</span>
                     </div>
                     <div class="app-loading-progress">
                         <span></span>
@@ -122,8 +121,8 @@
 
     async function showUntilBackendWakes() {
         await withLoading(waitForBackend, {
-            title: 'Starting server...',
-            message: 'The Render server is waking up. This can take a few seconds.',
+            title: 'Please wait, loading...',
+            message: 'The server is waking up. This can take a few seconds.',
             delay: 0
         });
     }

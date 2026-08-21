@@ -72,7 +72,9 @@ p {
     display: flex;
     align-items: center;
     padding: clamp(28px, 6vw, 120px);
-    background: #111111;
+    background:
+        radial-gradient(circle at 18% 20%, rgba(0, 255, 136, 0.24), transparent 34%),
+        linear-gradient(225deg, rgb(8, 88, 21), rgb(2, 28, 9) 62%, rgb(1, 13, 5));
     opacity: 0;
     pointer-events: none;
     transition: opacity 180ms ease;
@@ -89,15 +91,21 @@ p {
     z-index: 1;
     width: min(780px, 100%);
     color: #f5f5f5;
+    padding: clamp(22px, 4vw, 42px);
+    border: 1px solid rgba(112, 255, 161, 0.24);
+    border-radius: 15px;
+    background: rgba(2, 26, 9, 0.7);
+    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
 }
 
 .app-loading-grid {
     position: absolute;
     inset: 0 0 0 56%;
-    opacity: 0.52;
+    opacity: 0.36;
     background-image:
-        linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+        linear-gradient(rgba(0, 255, 96, 0.26) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 96, 0.26) 1px, transparent 1px);
     background-size: 160px 160px;
     transform: skewX(-8deg);
 }
@@ -106,10 +114,11 @@ p {
     display: inline-flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 76px;
+    margin-bottom: 56px;
     font-size: clamp(28px, 4vw, 42px);
     font-weight: 800;
     letter-spacing: 0;
+    color: #ffffff;
 }
 
 .app-loading-logo {
@@ -120,7 +129,7 @@ p {
 
 .app-loading-terminal {
     font-family: Consolas, "Courier New", monospace;
-    color: #bdbdbd;
+    color: #d5ffe0;
 }
 
 .app-loading-panel h2 {
@@ -133,7 +142,7 @@ p {
 
 .app-loading-panel p {
     margin: 0 0 34px;
-    color: #a8a8a8;
+    color: #cdf8d5;
     text-align: left;
     font-size: clamp(18px, 2.2vw, 28px);
     line-height: 1.4;
@@ -142,7 +151,7 @@ p {
 .app-loading-lines {
     display: grid;
     gap: 22px;
-    color: #8f8f8f;
+    color: #a9dfb5;
     font-size: clamp(15px, 1.8vw, 24px);
     line-height: 1.2;
 }
@@ -152,15 +161,17 @@ p {
     height: 12px;
     margin-top: 42px;
     overflow: hidden;
-    border: 1px solid #343434;
-    background: #050505;
+    border: 1px solid rgba(112, 255, 161, 0.45);
+    border-radius: 999px;
+    background: rgba(1, 18, 7, 0.88);
 }
 
 .app-loading-progress span {
     display: block;
     width: 38%;
     height: 100%;
-    background: #7c2cff;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #00aa55, #00ff88, #d7ff67);
     animation: appLoadingProgress 1.3s ease-in-out infinite;
 }
 
