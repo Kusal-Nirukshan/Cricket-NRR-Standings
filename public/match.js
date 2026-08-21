@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     card.querySelector('#bottomTeamWickets').value = bottomValues.wickets ?? '';
 
     attachOversValidation('.overs-input');
+    attachNumberStepGuard('#topTeamScore, #bottomTeamScore');
     attachNumericClamp('#topTeamWickets, #bottomTeamWickets', 0, 10);
 
     card.querySelector('#batFirstSelect').addEventListener('change', (event) => {
@@ -309,6 +310,18 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         e.target.value = sanitized;
+      });
+    });
+  }
+
+  function attachNumberStepGuard(selector) {
+    const inputs = card.querySelectorAll(selector);
+    inputs.forEach(input => {
+      input.addEventListener('wheel', e => {
+        if (document.activeElement === input) e.preventDefault();
+      }, { passive: false });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
       });
     });
   }
