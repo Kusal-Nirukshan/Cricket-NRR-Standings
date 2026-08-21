@@ -1,4 +1,5 @@
 (function () {
+    const DEFAULT_API_BASE_URL = 'https://nrr-calculator-7x00.onrender.com';
     const state = {
         activeCount: 0,
         shownAt: 0,
@@ -76,7 +77,7 @@
     }
 
     function apiUrl(resource) {
-        const apiBaseUrl = window.APP_CONFIG?.apiBaseUrl || '';
+        const apiBaseUrl = window.APP_CONFIG?.apiBaseUrl || DEFAULT_API_BASE_URL;
         if (!apiBaseUrl || typeof resource !== 'string' || !resource.startsWith('/')) {
             return resource;
         }
