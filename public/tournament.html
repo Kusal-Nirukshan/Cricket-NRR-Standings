@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="common.css">
-    <link rel="stylesheet" href="tournament.css">
+    <link rel="stylesheet" href="common.css?v=3">
+    <link rel="stylesheet" href="tournament.css?v=3">
     <title>Tournament Details</title>
 </head>
 
@@ -14,13 +14,16 @@
             <img src="nrr-logo.png" alt="NRR Calculator logo" class="site-logo">
             <span>NRR Calculator</span>
         </a>
-    </header><h1 class="topic">Tournament Details</h1>
+    </header>
+    <h1 class="topic">Tournament Details</h1>
     <div class="container">
         <p class="intro">Welcome to the tournament page. Here you can manage and view details about your cricket tournament.</p>
     </div>
 
+    <section class="tournament-summary" aria-live="polite">
         <h1 id="tournamentName"></h1>
         <p id="tournamentDetails"></p>
+    </section>
     <div class="format-wrapper">
         <div class="container">
             <h2 class="sub-topic">Select Tournament Format</h2>
@@ -84,7 +87,7 @@
     </div>
 
     <script src="app-config.js?v=2" defer></script>
-    <script src="loading.js?v=2" defer></script>
+    <script src="loading.js?v=4" defer></script>
     <script src="tournament-setup.js?v=2" defer></script>
 </body>
 </html>

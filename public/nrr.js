@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (err) {
             console.error(err);
-            errorBox.textContent = "❌ Server error. Check console.";
+            errorBox.textContent = `❌ ${err.message || 'Server error. Check console.'}`;
             errorBox.style.display = "block";
         }
     });

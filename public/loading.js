@@ -17,11 +17,25 @@
         overlay.setAttribute('role', 'status');
         overlay.setAttribute('aria-live', 'polite');
         overlay.innerHTML = `
+            <div class="app-loading-grid" aria-hidden="true"></div>
             <div class="app-loading-panel">
-                <img src="nrr-logo.png" alt="" class="app-loading-logo">
-                <div class="app-loading-spinner" aria-hidden="true"></div>
-                <h2 id="appLoadingTitle">Starting server...</h2>
-                <p id="appLoadingMessage">The free Render server may need a few seconds to wake up.</p>
+                <div class="app-loading-brand">
+                    <img src="nrr-logo.png" alt="" class="app-loading-logo">
+                    <span>NRR Calculator</span>
+                </div>
+                <div class="app-loading-terminal">
+                    <h2 id="appLoadingTitle">Starting server...</h2>
+                    <p id="appLoadingMessage">The free Render server may need a few seconds to wake up.</p>
+                    <div class="app-loading-lines" aria-hidden="true">
+                        <span>INCOMING HTTP REQUEST DETECTED ...</span>
+                        <span>SERVICE WAKING UP ...</span>
+                        <span>ALLOCATING COMPUTE RESOURCES ...</span>
+                        <span>PREPARING INSTANCE FOR INITIALIZATION ...</span>
+                    </div>
+                    <div class="app-loading-progress">
+                        <span></span>
+                    </div>
+                </div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -93,34 +107,25 @@
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    async function pollHealth() {
+    async function waitForBackend() {
         while (true) {
             try {
                 const response = await fetch(apiUrl('/health'), { cache: 'no-store' });
                 if (response.ok) return;
             } catch (err) {
-                console.error('Backend health check failed:', err);
+                console.error('Backend wake check failed:', err);
             }
 
             await wait(2000);
         }
     }
 
-    async function wakeBackend() {
-        try {
-            await withLoading(async () => {
-                await Promise.all([
-                    pollHealth(),
-                    wait(2000)
-                ]);
-            }, {
-                title: 'Starting server...',
-                message: 'Checking that the server is ready before you continue.',
-                delay: 0
-            });
-        } catch (err) {
-            console.error('Backend wake check failed:', err);
-        }
+    async function showUntilBackendWakes() {
+        await withLoading(waitForBackend, {
+            title: 'Starting server...',
+            message: 'The Render server is waking up. This can take a few seconds.',
+            delay: 0
+        });
     }
 
     async function readJson(response) {
@@ -150,8 +155,8 @@
         apiUrl,
         fetch: fetchWithLoading,
         readJson,
-        wakeBackend
+        showUntilBackendWakes
     };
 
-    document.addEventListener('DOMContentLoaded', wakeBackend);
+    document.addEventListener('DOMContentLoaded', showUntilBackendWakes);
 })();

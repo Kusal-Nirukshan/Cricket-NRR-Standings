@@ -14,20 +14,29 @@
     position: relative;
 }
 
+.tournament-summary {
+    width: min(1000px, calc(100% - 32px));
+    margin: 48px auto 34px;
+    padding: 0 16px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
 #tournamentName {
-    max-width: min(900px, calc(100% - 32px));
-    margin: 28px auto 10px;
+    width: 100%;
+    margin: 0 0 14px;
     color: #e9fff0;
     text-align: center;
     font-size: clamp(2rem, 5vw, 4rem);
     line-height: 1.1;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
     overflow-wrap: anywhere;
 }
 
 #tournamentDetails {
-    max-width: min(720px, calc(100% - 32px));
-    margin: 0 auto 28px;
-    color: #c8f7d4;
+    width: 100%;
+    margin: 0;
+    color: #d7ffd9;
     text-align: center;
     font-size: clamp(1.1rem, 2.4vw, 1.9rem);
     font-weight: 700;

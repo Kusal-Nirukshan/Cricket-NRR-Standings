@@ -251,17 +251,31 @@ function shuffleArray(arr) {
 router.post('/create-tournament', async (req, res) => {
     try {
         const { tournamentName, overs, teams } = req.body;
+        const oversNumber = Number(overs);
+        const teamsNumber = Number(teams);
 
-        if (!tournamentName || !overs || !teams) {
+        if (!tournamentName || !Number.isFinite(oversNumber) || !Number.isFinite(teamsNumber)) {
             return res.status(400).json({ success: false, error: "Missing required fields" });
         }
 
-        const tournament = await Tournament.create({ tournamentName, overs, teams });
+        if (oversNumber <= 0 || teamsNumber < 2) {
+            return res.status(400).json({ success: false, error: "Overs must be greater than 0 and teams must be at least 2" });
+        }
+
+        const tournament = await Tournament.create({
+            tournamentName: String(tournamentName).trim(),
+            overs: oversNumber,
+            teams: teamsNumber
+        });
         res.json({ success: true, id: tournament._id });
 
     } catch (err) {
         console.error("Error creating tournament:", err);
-        res.status(500).json({ success: false, error: "Server error" });
+        res.status(500).json({
+            success: false,
+            error: "Server error while creating tournament",
+            detail: process.env.NODE_ENV === 'production' ? undefined : err.message
+        });
     }
 });
 
